@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.3/css/all.min.css" integrity="sha256-2H3fkXt6FEmrReK448mDVGKb3WW2ZZw35gI7vqHOE4Y=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" integrity="sha256-Vzbj7sDDS/woiFS3uNKo8eIuni59rjyNGtXfstRzStA=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Pisces","version":"8.5.0","exturl":false,"sidebar":{"position":"right","width":240,"display":"always","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+<meta name="description" content="Our study aimed at providing a framework for data-driven approaches, by leveraging the strengths of the grey-box system theory or grey-box identification, known for its robustness in problem solving u">
+<meta property="og:type" content="article">
+<meta property="og:title" content="From SIR to SEAIRD - a modeling approach to predict the dynamics of COVID-19">
+<meta property="og:url" content="http://example.com/2021/07/29/p6/index.html">
+<meta property="og:site_name" content="My Channel">
+<meta property="og:description" content="Our study aimed at providing a framework for data-driven approaches, by leveraging the strengths of the grey-box system theory or grey-box identification, known for its robustness in problem solving u">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://pic4.zhimg.com/80/v2-c37525d2245056b5b4b9337551d8f007_1440w.jpg">
+<meta property="og:image" content="https://pic3.zhimg.com/80/v2-c156189bf693f37655d59b6d74b065d2_1440w.jpg">
+<meta property="og:image" content="https://pic2.zhimg.com/80/v2-871738994a95e9568d4b66f30338c8bd_1440w.jpg">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex=%5Cmathscr%7BI%7D(t)=%5Csum_%7Bt%7D%5E%7Bp=0%7D%7BI(p)%7D">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex=y(t)=+%5Cbegin%7Bpmatrix%7D+++%5Cmathscr%7BI%7D(t)+%5C%5C+D(t)+%5Cend%7Bpmatrix%7D">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex=%5Chat%7By%7D(t)=+%5Cbegin%7Bpmatrix%7D+++%5Chat%7B%5Cmathscr%7BI%7D%7D(t)+%5C%5C+%5Chat%7BD%7D(t)+%5Cend%7Bpmatrix%7D">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex=%5BT_0,T_1%5D">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex=%5Cvarphi">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex=%5Cmin_%7B%5Cvarphi%7D%7B%5Csum_%7Bt=T_0%7D%5E%7BT_1%7D%7B(w_t%5ET(y(t)-%5Chat%7By%7D(t,%5Cvarphi)))%5E2%7D%7D">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex=w_t">
+<meta property="og:image" content="https://pic4.zhimg.com/80/v2-ec5d8226cedb955f800a021621d0ed3b_1440w.jpg">
+<meta property="article:published_time" content="2021-07-29T08:40:20.000Z">
+<meta property="article:modified_time" content="2021-08-20T03:55:22.000Z">
+<meta property="article:author" content="Klein">
+<meta property="article:tag" content="Statistics">
+<meta property="article:tag" content="SIR">
+<meta property="article:tag" content="COVID-19">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic4.zhimg.com/80/v2-c37525d2245056b5b4b9337551d8f007_1440w.jpg">
+
+
+<link rel="canonical" href="http://example.com/2021/07/29/p6/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2021/07/29/p6/","path":"2021/07/29/p6/","title":"From SIR to SEAIRD - a modeling approach to predict the dynamics of COVID-19"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>From SIR to SEAIRD - a modeling approach to predict the dynamics of COVID-19 | My Channel</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">My Channel</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">1.1</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">33</span></a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories<span class="badge">5</span></a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">19</span></a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Abstract"><span class="nav-number">1.</span> <span class="nav-text">Abstract</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Introduction"><span class="nav-number">2.</span> <span class="nav-text">Introduction</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Dataset"><span class="nav-number">3.</span> <span class="nav-text">Dataset</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Methodology"><span class="nav-number">4.</span> <span class="nav-text">Methodology</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Conclusion"><span class="nav-number">5.</span> <span class="nav-text">Conclusion</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Klein"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">Klein</p>
+  <div class="site-description" itemprop="description">Personal website for idea spreading.</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">19</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">33</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/klein-wang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;klein-wang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:kleinwang1@gmail.com" title="G-Mail → mailto:kleinwang1@gmail.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i>G-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:2370347112@qq.com" title="QQ-Mail → mailto:2370347112@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>QQ-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.facebook.com/profile.php?id=100011302230273" title="FB Page → https:&#x2F;&#x2F;www.facebook.com&#x2F;profile.php?id&#x3D;100011302230273" rel="noopener" target="_blank"><i class="fab fa-facebook fa-fw"></i>FB Page</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.youtube.com/channel/UCcT2r9gIYAcPBw6q0qY685Q/playlists" title="YouTube → https:&#x2F;&#x2F;www.youtube.com&#x2F;channel&#x2F;UCcT2r9gIYAcPBw6q0qY685Q&#x2F;playlists" rel="noopener" target="_blank"><i class="fab fa-youtube fa-fw"></i>YouTube</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.instagram.com/kleinwang" title="Instagram → https:&#x2F;&#x2F;www.instagram.com&#x2F;kleinwang" rel="noopener" target="_blank"><i class="fab fa-instagram fa-fw"></i>Instagram</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/yuanchen-klein-wang-87004a112/" title="LinkedIn → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;yuanchen-klein-wang-87004a112&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>LinkedIn</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/wang-yuan-chen-24/columns" title="Zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;wang-yuan-chen-24&#x2F;columns" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>Zhihu</a>
+      </span>
+  </div>
+  <div class="cc-license site-overview-item animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdn.jsdelivr.net/npm/@creativecommons/vocabulary@2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+          </div>
+        </div>
+        <div class="back-to-top animated" role="button" aria-label="Back to top">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/07/29/p6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Klein">
+      <meta itemprop="description" content="Personal website for idea spreading.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="My Channel">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          From SIR to SEAIRD - a modeling approach to predict the dynamics of COVID-19
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2021-07-29 16:40:20" itemprop="dateCreated datePublished" datetime="2021-07-29T16:40:20+08:00">2021-07-29</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">Edited on</span>
+        <time title="Modified: 2021-08-20 11:55:22" itemprop="dateModified" datetime="2021-08-20T11:55:22+08:00">2021-08-20</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/academics/" itemprop="url" rel="index"><span itemprop="name">academics</span></a>
+        </span>
+          , 
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/academics/journal-review/" itemprop="url" rel="index"><span itemprop="name">journal review</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+            <div class="post-description">Our study aimed at providing a framework for data-driven approaches, by leveraging the strengths of the grey-box system theory or grey-box identification, known for its robustness in problem solving under partial, incomplete, or uncertain data. The model was implemented and solved using an Ordinary Differential Equation solver and an optimization tool.</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p><strong>From SIR to SEAIRD: a novel data-driven modeling approach based on the Grey-box System Theory to predict the dynamics of COVID-19</strong></p>
+<p>Authors: Komi Midzodzi Pékpé, Djamel Zitouni, Gilles Gasso, Wajdi Dhifli, Benjamin C. Guinhouya</p>
+<p>Link: <a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2106.11918">https://arxiv.org/abs/2106.11918</a></p>
+<h2 id="Abstract"><a href="#Abstract" class="headerlink" title="Abstract"></a>Abstract</h2><blockquote>
+<p>Common compartmental modeling for COVID-19 is based on a priori knowledge and numerous assumptions. Additionally, they do not systematically incorporate asymptomatic cases. Our study aimed at providing a framework for data-driven approaches, by leveraging the strengths of the grey-box system theory or grey-box identification, known for its robustness in problem solving under partial, incomplete, or uncertain data.<br>The model was implemented and solved using an Ordinary Differential Equation solver and an optimization tool. A cross-validation technique was applied, and the coefficient of determination R2 was computed in order to evaluate the goodness-of-fit of the model. Key epidemiological parameters were finally estimated and we provided the rationale for the construction of SEAIRD model. </p>
+</blockquote>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a><strong>Introduction</strong></h2><p>A traditional modeling approach in epidemiology for infectious diseases is to use compartment modeling which relies on the SIR (Susceptible, Infected, and Recovered or Removed)-type models, coupled with ARIMA model, deep learning. But the model suffers a number of issues, including the priori assumptions, and the need of a thorough knowledge of the circulating virus, which was difficult at the moment of conducting this study, due to the novelty SARS-CoV-2. </p>
+<p>In order to compensate the dearth of data and uncertainties around SARS-CoV-2 mechanisms of action and that of its related disease, the COVID-19, authors postulate that the grey-box system identification theory (GBSIT) could make an asset to tackle these challenges. </p>
+<p>Mathematically, the COVID-19 dynamic model can be seen as a switching system with non-linear system models, where the switches are triggered by control measures set by authorities. The switching model coupled with grey-box approach provides flexibility in characterizing the dynamics of the epidemic across its different phases. One major advantage of such data-driven approach is its ability to operate under limited priori knowledge of the studied phenomenon. </p>
+<h2 id="Dataset"><a href="#Dataset" class="headerlink" title="Dataset"></a><strong>Dataset</strong></h2><p>The epidemiologic data were taken from an open source repository operated by the European Centre for Disease prevention and Control (ECDC). The database provides daily number of new cases and deaths for different countries.</p>
+<p>All used epidemiologic data were taken from an <a href="https://link.zhihu.com/?target=https://www.ecdc.europa.eu/en/covid-19">https://www.ecdc.europa.eu/en/covid-19</a> pandemic open source repository operated by the European Centre for Disease prevention and Control (ECDC).</p>
+<p>In order to preclude perturbations to the modeling approach due to changes in behaviors, as a consequence of policy measures taken by countries, only data on the dynamical stable phase of the epidemic is considered, i.e. a period within the setting of control measures.</p>
+<h2 id="Methodology"><a href="#Methodology" class="headerlink" title="Methodology"></a><strong>Methodology</strong></h2><p>The model in this paper has considered human transmission of SARS-CoV-2 strain, with the following assumptions (provided t is the time stamp): </p>
+<ul>
+<li>Infective persons can be classified in two categories; one of which is with symptoms, denoted by I(t), and the other is without any clinical presence of symptoms called asymptomatic or subclinical infective cases, denoted by A(t).</li>
+<li>When a change in the behavior of people occurs due to a public response to the outbreak, the contact rate (reflecting the level of risky behaviors) decreases with the increase in the cumulative numbers of removed persons;</li>
+<li>Homogeneous mixing population is assumed.</li>
+</ul>
+<p><img src="https://pic4.zhimg.com/80/v2-c37525d2245056b5b4b9337551d8f007_1440w.jpg"></p>
+<p>The proposed SEAIRD model is a compartment model that explicitly incorporates asymptomatic cases in the analysis of the epidemic evolution. The model consists of the following time-dependent variables: S(t): susceptible individuals; E(t): exposed (incubating) population; A(t): asymptomatic infective people; I(t): symptomatic infective individuals; R(t): removed persons (i.e. completely and&#x2F;or temporary recovered from COVID-19); D(t): Dead people. A flow chart of the model is given above.</p>
+<p>Relevant parameters are defined as follows:</p>
+<p><img src="https://pic3.zhimg.com/80/v2-c156189bf693f37655d59b6d74b065d2_1440w.jpg"></p>
+<p>The considered model is a non-linear dynamic model defined as:</p>
+<p><img src="https://pic2.zhimg.com/80/v2-871738994a95e9568d4b66f30338c8bd_1440w.jpg"></p>
+<p>Here, both cumulative infective cases and dead cases are discretized with a sampling period of one day to reduce the computation costs, yielding: <img src="https://www.zhihu.com/equation?tex=%5Cmathscr%7BI%7D(t)=%5Csum_%7Bt%7D%5E%7Bp=0%7D%7BI(p)%7D">.</p>
+<p>Let <img src="https://www.zhihu.com/equation?tex=y(t)=+%5Cbegin%7Bpmatrix%7D+++%5Cmathscr%7BI%7D(t)+%5C%5C+D(t)+%5Cend%7Bpmatrix%7D"> be the vector including the real cumulative number of infective cases I (t), and the cumulative number of dead cases D(t) at day t. Let <img src="https://www.zhihu.com/equation?tex=%5Chat%7By%7D(t)=+%5Cbegin%7Bpmatrix%7D+++%5Chat%7B%5Cmathscr%7BI%7D%7D(t)+%5C%5C+%5Chat%7BD%7D(t)+%5Cend%7Bpmatrix%7D"> be the predicted counterpart of y(t) by our model at the same day. To find the optimal parameters vector which fits our model to the collected data y(t) over a time window <img src="https://www.zhihu.com/equation?tex=%5BT_0,T_1%5D"> , authors have considered the following optimization problem over <img src="https://www.zhihu.com/equation?tex=%5Cvarphi">:</p>
+<p><img src="https://www.zhihu.com/equation?tex=%5Cmin_%7B%5Cvarphi%7D%7B%5Csum_%7Bt=T_0%7D%5E%7BT_1%7D%7B(w_t%5ET(y(t)-%5Chat%7By%7D(t,%5Cvarphi)))%5E2%7D%7D"> where <img src="https://www.zhihu.com/equation?tex=w_t"> is the weight vector that can be used to balance infected and death cases.</p>
+<p>The complete algorithm is shown as below:</p>
+<p><img src="https://pic4.zhimg.com/80/v2-ec5d8226cedb955f800a021621d0ed3b_1440w.jpg"></p>
+<h2 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h2><p>When applied to Brazil’s cases, SEAIRD produced an excellent agreement to the data, with an R2 ≥ 90%. The probability of COVID-19 transmission was generally high (≥ 95%). On the basis of a 20-day modeling data, the incidence rate of COVID-19 was as low as 3 infected cases per 100,000 exposed persons in Brazil and France. Within the same time frame, the fatality rate of COVID-19 was the highest in France (16.4%) followed by Brazil (6.9%), and the lowest in Russia (≤ 1%). SEAIRD represents an asset for modeling infectious diseases in their dynamical stable phase, especially for new viruses when pathophysiology knowledge is very limited.</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>Buy me a coffee</div>
+  <button onclick="document.querySelector('.post-reward').classList.toggle('active');">
+    Donate
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.png" alt="Klein WeChat Pay">
+        <span>WeChat Pay</span>
+      </div>
+      <div>
+        <img src="/images/alipay.png" alt="Klein Alipay">
+        <span>Alipay</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+        <a target="_blank" class="social-link" href="https://www.zhihu.com/people/wang-yuan-chen-24">
+          <span class="icon">
+            <i class="fab fa-zhihu"></i>
+          </span>
+
+          <span class="label">Zhihu</span>
+        </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Statistics/" rel="tag"># Statistics</a>
+              <a href="/tags/SIR/" rel="tag"># SIR</a>
+              <a href="/tags/COVID-19/" rel="tag"># COVID-19</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/07/07/p5/" rel="prev" title="Verification of probability forecasts for football outcomes">
+                  <i class="fa fa-chevron-left"></i> Verification of probability forecasts for football outcomes
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/08/01/%E9%B3%97%E9%B1%BC%E7%9A%84%E6%97%85%E8%A1%8C/" rel="next" title="读书笔记《鳗鱼的旅行》">
+                  读书笔记《鳗鱼的旅行》 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 2021 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Klein</span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+<script>
+    var now = new Date(); 
+    function createtime() { 
+        var grt= new Date("06/25/2021 12:00:00");//此处修改你的建站时间或者网站上线时间 
+        now.setTime(now.getTime()+250); 
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days); 
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours); 
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum); 
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;} 
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum); 
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;} 
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 "; 
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒"; 
+    } 
+setInterval("createtime()",250);
+</script>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" integrity="sha256-yt2kYMy0w8AbtF89WXb2P1rfjcP/HTHLT7097U8Y5b8=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"position":"right","width":150,"height":300},"mobile":{"show":true}});</script></body>
+</html>

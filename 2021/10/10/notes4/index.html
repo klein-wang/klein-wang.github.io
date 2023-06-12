@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.3/css/all.min.css" integrity="sha256-2H3fkXt6FEmrReK448mDVGKb3WW2ZZw35gI7vqHOE4Y=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" integrity="sha256-Vzbj7sDDS/woiFS3uNKo8eIuni59rjyNGtXfstRzStA=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Pisces","version":"8.5.0","exturl":false,"sidebar":{"position":"right","width":240,"display":"always","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+<meta name="description" content="SnowNLP是一个python写的类库，可以方便的处理中文文本内容，是受到了TextBlob的启发而写的，由于现在大部分的自然语言处理库基本都是针对英文的，于是写了一个方便处理中文的类库，并且和TextBlob不同的是，这里没有用NLTK，所有的算法都是自己实现的，并且自带了一些训练好的字典。这篇文章会分享日常工作场景下使用snownlp.SnowNLP做文本情感分析的场景功能。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SnowNLP - 文本情感分析">
+<meta property="og:url" content="http://example.com/2021/10/10/notes4/index.html">
+<meta property="og:site_name" content="My Channel">
+<meta property="og:description" content="SnowNLP是一个python写的类库，可以方便的处理中文文本内容，是受到了TextBlob的启发而写的，由于现在大部分的自然语言处理库基本都是针对英文的，于是写了一个方便处理中文的类库，并且和TextBlob不同的是，这里没有用NLTK，所有的算法都是自己实现的，并且自带了一些训练好的字典。这篇文章会分享日常工作场景下使用snownlp.SnowNLP做文本情感分析的场景功能。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://pic4.zhimg.com/80/v2-299a136ff1d31ad9cd0de90c39707a43_1440w.jpg">
+<meta property="article:published_time" content="2021-10-10T15:43:20.000Z">
+<meta property="article:modified_time" content="2021-10-10T15:44:22.000Z">
+<meta property="article:author" content="Klein">
+<meta property="article:tag" content="Machine Learning">
+<meta property="article:tag" content="NLP">
+<meta property="article:tag" content="Sentiment Analysis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic4.zhimg.com/80/v2-299a136ff1d31ad9cd0de90c39707a43_1440w.jpg">
+
+
+<link rel="canonical" href="http://example.com/2021/10/10/notes4/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2021/10/10/notes4/","path":"2021/10/10/notes4/","title":"SnowNLP - 文本情感分析"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>SnowNLP - 文本情感分析 | My Channel</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">My Channel</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">1.1</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">33</span></a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories<span class="badge">5</span></a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">19</span></a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E8%BF%90%E8%A1%8C"><span class="nav-number">1.</span> <span class="nav-text">代码运行</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text">源码解析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SnowNLP%E5%85%B6%E4%BB%96%E5%8A%9F%E8%83%BD%EF%BC%9A"><span class="nav-number">3.</span> <span class="nav-text">SnowNLP其他功能：</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Klein"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">Klein</p>
+  <div class="site-description" itemprop="description">Personal website for idea spreading.</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">19</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">33</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/klein-wang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;klein-wang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:kleinwang1@gmail.com" title="G-Mail → mailto:kleinwang1@gmail.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i>G-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:2370347112@qq.com" title="QQ-Mail → mailto:2370347112@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>QQ-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.facebook.com/profile.php?id=100011302230273" title="FB Page → https:&#x2F;&#x2F;www.facebook.com&#x2F;profile.php?id&#x3D;100011302230273" rel="noopener" target="_blank"><i class="fab fa-facebook fa-fw"></i>FB Page</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.youtube.com/channel/UCcT2r9gIYAcPBw6q0qY685Q/playlists" title="YouTube → https:&#x2F;&#x2F;www.youtube.com&#x2F;channel&#x2F;UCcT2r9gIYAcPBw6q0qY685Q&#x2F;playlists" rel="noopener" target="_blank"><i class="fab fa-youtube fa-fw"></i>YouTube</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.instagram.com/kleinwang" title="Instagram → https:&#x2F;&#x2F;www.instagram.com&#x2F;kleinwang" rel="noopener" target="_blank"><i class="fab fa-instagram fa-fw"></i>Instagram</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/yuanchen-klein-wang-87004a112/" title="LinkedIn → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;yuanchen-klein-wang-87004a112&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>LinkedIn</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/wang-yuan-chen-24/columns" title="Zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;wang-yuan-chen-24&#x2F;columns" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>Zhihu</a>
+      </span>
+  </div>
+  <div class="cc-license site-overview-item animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdn.jsdelivr.net/npm/@creativecommons/vocabulary@2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+          </div>
+        </div>
+        <div class="back-to-top animated" role="button" aria-label="Back to top">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/10/10/notes4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Klein">
+      <meta itemprop="description" content="Personal website for idea spreading.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="My Channel">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          SnowNLP - 文本情感分析
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2021-10-10 23:43:20 / Modified: 23:44:22" itemprop="dateCreated datePublished" datetime="2021-10-10T23:43:20+08:00">2021-10-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/academics/" itemprop="url" rel="index"><span itemprop="name">academics</span></a>
+        </span>
+          , 
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/academics/notes/" itemprop="url" rel="index"><span itemprop="name">notes</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+            <div class="post-description">SnowNLP是一个python写的类库，可以方便的处理中文文本内容，是受到了TextBlob的启发而写的，由于现在大部分的自然语言处理库基本都是针对英文的，于是写了一个方便处理中文的类库，并且和TextBlob不同的是，这里没有用NLTK，所有的算法都是自己实现的，并且自带了一些训练好的字典。这篇文章会分享日常工作场景下使用snownlp.SnowNLP做文本情感分析的场景功能。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <blockquote>
+<p>SnowNLP是一个python写的类库，可以方便的处理中文文本内容，是受到了TextBlob的启发而写的，由于现在大部分的自然语言处理库基本都是针对英文的，于是写了一个方便处理中文的类库，并且和TextBlob不同的是，这里没有用NLTK，所有的算法都是自己实现的，并且自带了一些训练好的字典。</p>
+</blockquote>
+<p>snownlp package也是jieba之外的一个python分装NLP库，主要的功能涵盖了中文分词、词性标注、文本分类、文本相似度查看以及情感分析等等。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 先安装package</span></span><br><span class="line">pip install snownlp</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://pic4.zhimg.com/80/v2-299a136ff1d31ad9cd0de90c39707a43_1440w.jpg"></p>
+<h2 id="代码运行"><a href="#代码运行" class="headerlink" title="代码运行"></a>代码运行</h2><p>这篇文章会分享日常工作场景下使用snownlp.SnowNLP做文本情感分析的场景功能：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">```</span><br><span class="line"><span class="comment"># 读取数据，创建dataframe，这里命名为df</span></span><br><span class="line">```</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> snownlp <span class="keyword">import</span> SnowNLP</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">snow_result</span>(<span class="params">answerstr</span>):</span></span><br><span class="line">    ```</span><br><span class="line">    输入为一个文本string，通过调用SnowNLP.sentiments去返回文本的情感分数（<span class="number">0</span>到<span class="number">1</span>之间）</span><br><span class="line">    ```</span><br><span class="line">    s = SnowNLP(<span class="built_in">str</span>(answerstr))</span><br><span class="line">    <span class="keyword">if</span> s.sentiments &gt;= <span class="number">0.6</span>: <span class="comment"># 这里将情感分数大于0.6的文本归位正面积极性的情感文本</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span> <span class="comment"># 最终输出0或1，去判断文本的情感属性</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 根据df里的“answerstr”列，将读取文本后的情感分析结果添加到新的一列，命名为“positive”</span></span><br><span class="line">df[<span class="string">&#x27;positive&#x27;</span>] = df[<span class="string">&#x27;answerstr&#x27;</span>].apply(snow_result)</span><br></pre></td></tr></table></figure>
+
+<p>这里以两段文本为例：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 文本</span></span><br><span class="line">text1 = <span class="string">&#x27;这部电影真的不错，全程无尿点&#x27;</span></span><br><span class="line">text2 = <span class="string">&#x27;这部电影简直烂到爆，不好看&#x27;</span></span><br><span class="line"></span><br><span class="line">s1 = SnowNLP(text1)</span><br><span class="line">s2 = SnowNLP(text2)</span><br><span class="line"><span class="built_in">print</span>(s1.sentences, s1.sentiments)</span><br><span class="line"><span class="built_in">print</span>(s2.sentences, s2.sentiments)</span><br><span class="line"></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>[<span class="string">&#x27;这部电影真的不错&#x27;</span>, <span class="string">&#x27;全程无尿点&#x27;</span>] <span class="number">0.9338292009902669</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>[<span class="string">&#x27;这部电影简直烂到爆&#x27;</span>, <span class="string">&#x27;不好看&#x27;</span>] <span class="number">0.0656738892951001</span></span><br></pre></td></tr></table></figure>
+
+<p>综合来看snownlp的情感分析在对于评价性的文本段落而言更加准确，然后在一些知识库问答（Knowledge Base Question Answering，KBQA）中，对于文本回答效果差一些，因为文本中会相对缺少情绪词语，特征数据的稀疏导致准确度的下降。</p>
+<h2 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># snownlp中支持情感分析的模块在sentiment文件夹中，其核心代码为__init__.py</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Sentiment</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.classifier = Bayes() <span class="comment"># 使用的是Bayes的模型</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">save</span>(<span class="params">self, fname, iszip=<span class="literal">True</span></span>):</span></span><br><span class="line">        self.classifier.save(fname, iszip) <span class="comment"># 保存最终的模型</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">load</span>(<span class="params">self, fname=data_path, iszip=<span class="literal">True</span></span>):</span></span><br><span class="line">        self.classifier.load(fname, iszip) <span class="comment"># 加载贝叶斯模型</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 分词以及去停用词的操作    </span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">handle</span>(<span class="params">self, doc</span>):</span></span><br><span class="line">        words = seg.seg(doc) <span class="comment"># 分词</span></span><br><span class="line">        words = normal.filter_stop(words) <span class="comment"># 去停用词</span></span><br><span class="line">        <span class="keyword">return</span> words <span class="comment"># 返回分词后的结果</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">train</span>(<span class="params">self, neg_docs, pos_docs</span>):</span></span><br><span class="line">        data = []</span><br><span class="line">        <span class="comment"># 读入负样本</span></span><br><span class="line">        <span class="keyword">for</span> sent <span class="keyword">in</span> neg_docs:</span><br><span class="line">            data.append([self.handle(sent), <span class="string">&#x27;neg&#x27;</span>])</span><br><span class="line">        <span class="comment"># 读入正样本</span></span><br><span class="line">        <span class="keyword">for</span> sent <span class="keyword">in</span> pos_docs:</span><br><span class="line">            data.append([self.handle(sent), <span class="string">&#x27;pos&#x27;</span>])</span><br><span class="line">        <span class="comment"># 调用的是Bayes模型的训练方法</span></span><br><span class="line">        self.classifier.train(data)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">classify</span>(<span class="params">self, sent</span>):</span></span><br><span class="line">        <span class="comment"># 1、调用sentiment类中的handle方法</span></span><br><span class="line">        <span class="comment"># 2、调用Bayes类中的classify方法</span></span><br><span class="line">        ret, prob = self.classifier.classify(self.handle(sent)) <span class="comment"># 调用贝叶斯中的classify方法</span></span><br><span class="line">        <span class="keyword">if</span> ret == <span class="string">&#x27;pos&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> prob</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>-probclass Sentiment(<span class="built_in">object</span>):</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.classifier = Bayes() <span class="comment"># 使用的是Bayes的模型</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">save</span>(<span class="params">self, fname, iszip=<span class="literal">True</span></span>):</span></span><br><span class="line">        self.classifier.save(fname, iszip) <span class="comment"># 保存最终的模型</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">load</span>(<span class="params">self, fname=data_path, iszip=<span class="literal">True</span></span>):</span></span><br><span class="line">        self.classifier.load(fname, iszip) <span class="comment"># 加载贝叶斯模型</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 分词以及去停用词的操作    </span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">handle</span>(<span class="params">self, doc</span>):</span></span><br><span class="line">        words = seg.seg(doc) <span class="comment"># 分词</span></span><br><span class="line">        words = normal.filter_stop(words) <span class="comment"># 去停用词</span></span><br><span class="line">        <span class="keyword">return</span> words <span class="comment"># 返回分词后的结果</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">train</span>(<span class="params">self, neg_docs, pos_docs</span>):</span></span><br><span class="line">        data = []</span><br><span class="line">        <span class="comment"># 读入负样本</span></span><br><span class="line">        <span class="keyword">for</span> sent <span class="keyword">in</span> neg_docs:</span><br><span class="line">            data.append([self.handle(sent), <span class="string">&#x27;neg&#x27;</span>])</span><br><span class="line">        <span class="comment"># 读入正样本</span></span><br><span class="line">        <span class="keyword">for</span> sent <span class="keyword">in</span> pos_docs:</span><br><span class="line">            data.append([self.handle(sent), <span class="string">&#x27;pos&#x27;</span>])</span><br><span class="line">        <span class="comment"># 调用的是Bayes模型的训练方法</span></span><br><span class="line">        self.classifier.train(data)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">classify</span>(<span class="params">self, sent</span>):</span></span><br><span class="line">        <span class="comment"># 1、调用sentiment类中的handle方法</span></span><br><span class="line">        <span class="comment"># 2、调用Bayes类中的classify方法</span></span><br><span class="line">        ret, prob = self.classifier.classify(self.handle(sent)) <span class="comment"># 调用贝叶斯中的classify方法</span></span><br><span class="line">        <span class="keyword">if</span> ret == <span class="string">&#x27;pos&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> prob</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>-prob</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>另外推荐一篇CSDN上的深度好文，非常详细地解析了snownlp源码各个模块的实现。</p>
+<p><a href="https://link.zhihu.com/?target=https://blog.csdn.net/google19890102/article/details/80091502">情感分析–深入snownlp原理和实践_null的专栏-CSDN</a></p>
+<h2 id="SnowNLP其他功能："><a href="#SnowNLP其他功能：" class="headerlink" title="SnowNLP其他功能："></a>SnowNLP其他功能：</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># input text first ......</span></span><br><span class="line">text = <span class="string">&#x27; &#x27;</span></span><br><span class="line"></span><br><span class="line">s = SnowNLP(text)</span><br><span class="line"><span class="comment"># 分词</span></span><br><span class="line"><span class="built_in">print</span>(s.words)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 词性标注</span></span><br><span class="line">tags = [x <span class="keyword">for</span> x <span class="keyword">in</span> s.tags]</span><br><span class="line"><span class="built_in">print</span>(tags)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 断句</span></span><br><span class="line"><span class="built_in">print</span>(s.sentences) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 拼音</span></span><br><span class="line"><span class="built_in">print</span>(s.pinyin)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 繁体转简体</span></span><br><span class="line"><span class="built_in">print</span>(s.han) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 关键字抽取</span></span><br><span class="line">s = SnowNLP(text)</span><br><span class="line"><span class="built_in">print</span>(s.keywords(limit=<span class="number">10</span>)) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 概括总结文章</span></span><br><span class="line"><span class="built_in">print</span>(s.summary(limit=<span class="number">4</span>)) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 信息衡量</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">TF-IDF是一种统计方法，用以评估一字词对于一个文件集或一个语料库中的其中一份文件的重要程度。</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">TF词频越大越重要，但是文中会的“的”，“你”等无意义词频很大，却信息量几乎为0，这种情况导致单纯看词频评价词语重要性是不准确的。因此加入了idf</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">IDF的主要思想是：如果包含词条t的文档越少，也就是n越小，IDF越大，则说明词条t越重要</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">TF-IDF综合起来，才能准确的综合的评价一词对文本的重要性。</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line">s = SnowNLP([</span><br><span class="line">    [<span class="string">&#x27;性格&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>],</span><br><span class="line">    [<span class="string">&#x27;温柔&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>],</span><br><span class="line">    [<span class="string">&#x27;温柔&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>],</span><br><span class="line">    [<span class="string">&#x27;好人&#x27;</span>],</span><br><span class="line">    [<span class="string">&#x27;性格&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>],</span><br><span class="line">])</span><br><span class="line"><span class="built_in">print</span>(s.tf) <span class="comment"># [&#123;&#x27;性格&#x27;: 1, &#x27;善良&#x27;: 1&#125;, &#123;&#x27;温柔&#x27;: 1, &#x27;善良&#x27;: 2&#125;, &#123;&#x27;温柔&#x27;: 1, &#x27;善良&#x27;: 1&#125;, &#123;&#x27;好人&#x27;: 1&#125;, &#123;&#x27;性格&#x27;: 1, &#x27;善良&#x27;: 1&#125;]</span></span><br><span class="line"><span class="built_in">print</span>(s.idf) <span class="comment"># &#123;&#x27;性格&#x27;: 0.33647223662121295, &#x27;善良&#x27;: -1.0986122886681098, &#x27;温柔&#x27;: 0.33647223662121295, &#x27;好人&#x27;: 1.0986122886681098&#125;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 文本相似性</span></span><br><span class="line"><span class="built_in">print</span>(s.sim([<span class="string">&#x27;温柔&#x27;</span>])) <span class="comment"># [0, 0.2746712135683371, 0.33647223662121295, 0, 0]</span></span><br><span class="line"><span class="built_in">print</span>(s.sim([<span class="string">&#x27;善良&#x27;</span>])) <span class="comment"># [-1.0986122886681098, -1.3521382014376737, -1.0986122886681098, 0, -1.0986122886681098]</span></span><br><span class="line"><span class="built_in">print</span>(s.sim([<span class="string">&#x27;好人&#x27;</span>])) <span class="comment"># [0, 0, 0, 1.4175642434427222, 0]</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>文章首发于知乎专栏：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/408160149">https://zhuanlan.zhihu.com/p/408160149</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>Buy me a coffee</div>
+  <button onclick="document.querySelector('.post-reward').classList.toggle('active');">
+    Donate
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.png" alt="Klein WeChat Pay">
+        <span>WeChat Pay</span>
+      </div>
+      <div>
+        <img src="/images/alipay.png" alt="Klein Alipay">
+        <span>Alipay</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+        <a target="_blank" class="social-link" href="https://www.zhihu.com/people/wang-yuan-chen-24">
+          <span class="icon">
+            <i class="fab fa-zhihu"></i>
+          </span>
+
+          <span class="label">Zhihu</span>
+        </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Machine-Learning/" rel="tag"># Machine Learning</a>
+              <a href="/tags/NLP/" rel="tag"># NLP</a>
+              <a href="/tags/Sentiment-Analysis/" rel="tag"># Sentiment Analysis</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/10/10/notes3/" rel="prev" title="sklearn.metrics - 回归/分类模型的评估方法">
+                  <i class="fa fa-chevron-left"></i> sklearn.metrics - 回归/分类模型的评估方法
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/10/10/notes5/" rel="next" title="基于DFA的广告性敏感词查询">
+                  基于DFA的广告性敏感词查询 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 2021 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Klein</span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+<script>
+    var now = new Date(); 
+    function createtime() { 
+        var grt= new Date("06/25/2021 12:00:00");//此处修改你的建站时间或者网站上线时间 
+        now.setTime(now.getTime()+250); 
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days); 
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours); 
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum); 
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;} 
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum); 
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;} 
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 "; 
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒"; 
+    } 
+setInterval("createtime()",250);
+</script>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" integrity="sha256-yt2kYMy0w8AbtF89WXb2P1rfjcP/HTHLT7097U8Y5b8=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"position":"right","width":150,"height":300},"mobile":{"show":true}});</script></body>
+</html>

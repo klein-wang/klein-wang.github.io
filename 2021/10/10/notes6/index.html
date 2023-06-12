@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.3/css/all.min.css" integrity="sha256-2H3fkXt6FEmrReK448mDVGKb3WW2ZZw35gI7vqHOE4Y=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" integrity="sha256-Vzbj7sDDS/woiFS3uNKo8eIuni59rjyNGtXfstRzStA=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Pisces","version":"8.5.0","exturl":false,"sidebar":{"position":"right","width":240,"display":"always","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+<meta name="description" content="在针对于自然语言处理中，时常会需要为无标签类的特征数据通过无监督&#x2F;半监督的学习方式来进行聚类分析。这篇文章中，我会具体介绍K-Means的聚类方法以及它的实战应用。因为原始输入的数据都是长文本类型，所以希望通过转为词向量的方式来表示文本内含的数据信息，从而可以通过比较向量间的距离去表达数据（文本）之间的相似度。而之后的聚类分析也会基于文本间的相似度来进行聚类。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="聚类分析 - 基于TF-IDF生成词向量的K-Means Clustering">
+<meta property="og:url" content="http://example.com/2021/10/10/notes6/index.html">
+<meta property="og:site_name" content="My Channel">
+<meta property="og:description" content="在针对于自然语言处理中，时常会需要为无标签类的特征数据通过无监督&#x2F;半监督的学习方式来进行聚类分析。这篇文章中，我会具体介绍K-Means的聚类方法以及它的实战应用。因为原始输入的数据都是长文本类型，所以希望通过转为词向量的方式来表示文本内含的数据信息，从而可以通过比较向量间的距离去表达数据（文本）之间的相似度。而之后的聚类分析也会基于文本间的相似度来进行聚类。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://pic3.zhimg.com/80/v2-4d1ce6f7f368f318cf17de4324e6bbb2_1440w.jpg">
+<meta property="og:image" content="https://pic4.zhimg.com/80/v2-30322b4d919c90f5b1e06381df1167ef_1440w.jpg">
+<meta property="article:published_time" content="2021-10-10T15:50:20.000Z">
+<meta property="article:modified_time" content="2021-10-10T15:53:30.000Z">
+<meta property="article:author" content="Klein">
+<meta property="article:tag" content="TF-IDF">
+<meta property="article:tag" content="NLP">
+<meta property="article:tag" content="K-Means">
+<meta property="article:tag" content="Word Embedding">
+<meta property="article:tag" content="Clustering Analysis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic3.zhimg.com/80/v2-4d1ce6f7f368f318cf17de4324e6bbb2_1440w.jpg">
+
+
+<link rel="canonical" href="http://example.com/2021/10/10/notes6/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2021/10/10/notes6/","path":"2021/10/10/notes6/","title":"聚类分析 - 基于TF-IDF生成词向量的K-Means Clustering"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>聚类分析 - 基于TF-IDF生成词向量的K-Means Clustering | My Channel</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">My Channel</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">1.1</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">33</span></a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories<span class="badge">5</span></a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">19</span></a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Jieba%E5%88%86%E8%AF%8D"><span class="nav-number">1.</span> <span class="nav-text">Jieba分词</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TF-IDF%E8%AF%8D%E5%90%91%E9%87%8F%EF%BC%88TfidfVectorizer%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">TF-IDF词向量（TfidfVectorizer）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#K-Means%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83"><span class="nav-number">3.</span> <span class="nav-text">K-Means模型训练</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Klein"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">Klein</p>
+  <div class="site-description" itemprop="description">Personal website for idea spreading.</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">19</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">33</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/klein-wang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;klein-wang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:kleinwang1@gmail.com" title="G-Mail → mailto:kleinwang1@gmail.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i>G-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:2370347112@qq.com" title="QQ-Mail → mailto:2370347112@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>QQ-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.facebook.com/profile.php?id=100011302230273" title="FB Page → https:&#x2F;&#x2F;www.facebook.com&#x2F;profile.php?id&#x3D;100011302230273" rel="noopener" target="_blank"><i class="fab fa-facebook fa-fw"></i>FB Page</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.youtube.com/channel/UCcT2r9gIYAcPBw6q0qY685Q/playlists" title="YouTube → https:&#x2F;&#x2F;www.youtube.com&#x2F;channel&#x2F;UCcT2r9gIYAcPBw6q0qY685Q&#x2F;playlists" rel="noopener" target="_blank"><i class="fab fa-youtube fa-fw"></i>YouTube</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.instagram.com/kleinwang" title="Instagram → https:&#x2F;&#x2F;www.instagram.com&#x2F;kleinwang" rel="noopener" target="_blank"><i class="fab fa-instagram fa-fw"></i>Instagram</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/yuanchen-klein-wang-87004a112/" title="LinkedIn → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;yuanchen-klein-wang-87004a112&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>LinkedIn</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/wang-yuan-chen-24/columns" title="Zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;wang-yuan-chen-24&#x2F;columns" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>Zhihu</a>
+      </span>
+  </div>
+  <div class="cc-license site-overview-item animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdn.jsdelivr.net/npm/@creativecommons/vocabulary@2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+          </div>
+        </div>
+        <div class="back-to-top animated" role="button" aria-label="Back to top">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/10/10/notes6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Klein">
+      <meta itemprop="description" content="Personal website for idea spreading.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="My Channel">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          聚类分析 - 基于TF-IDF生成词向量的K-Means Clustering
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2021-10-10 23:50:20 / Modified: 23:53:30" itemprop="dateCreated datePublished" datetime="2021-10-10T23:50:20+08:00">2021-10-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/academics/" itemprop="url" rel="index"><span itemprop="name">academics</span></a>
+        </span>
+          , 
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/academics/notes/" itemprop="url" rel="index"><span itemprop="name">notes</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+            <div class="post-description">在针对于自然语言处理中，时常会需要为无标签类的特征数据通过无监督/半监督的学习方式来进行聚类分析。这篇文章中，我会具体介绍K-Means的聚类方法以及它的实战应用。因为原始输入的数据都是长文本类型，所以希望通过转为词向量的方式来表示文本内含的数据信息，从而可以通过比较向量间的距离去表达数据（文本）之间的相似度。而之后的聚类分析也会基于文本间的相似度来进行聚类。</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>在针对于自然语言处理中，时常会需要为无标签类的特征数据通过无监督&#x2F;半监督的学习方式来进行聚类分析。常见的聚类分析方法有K-Means，均值漂移，DBSCAN，GMM&#x2F;EM(高斯混合最大期望)，凝聚层次聚类（HAC）和图团体检测（Graph Community Detection）。（具体介绍可以参考下方链接）</p>
+<p><a href="https://link.zhihu.com/?target=https://blog.csdn.net/cainiao22222/article/details/84861210">六大常见聚类方法_cainiao22222的博客-CSDN博客_聚类的方法</a></p>
+<p>这篇文章中，我会具体介绍K-Means的聚类方法以及它的实战应用。</p>
+<p>因为原始输入的数据都是长文本类型，所以希望通过转为词向量的方式来表示文本内含的数据信息，从而可以通过比较向量间的距离去表达数据（文本）之间的相似度。而之后的聚类分析也会基于文本间的相似度来进行聚类。</p>
+<p>首先导入相关的Python packages：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> __future__ <span class="keyword">import</span> print_function</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line"><span class="keyword">import</span> jieba</span><br><span class="line"><span class="keyword">from</span> matplotlib <span class="keyword">import</span> pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> sklearn.cluster <span class="keyword">import</span> KMeans,MiniBatchKMeans</span><br><span class="line"><span class="keyword">from</span> sklearn.feature_extraction.text <span class="keyword">import</span> TfidfVectorizer</span><br></pre></td></tr></table></figure>
+
+<h2 id="Jieba分词"><a href="#Jieba分词" class="headerlink" title="Jieba分词"></a><strong>Jieba分词</strong></h2><p>首先通过Jieba的lcut()去将原文本拆成单词，这里基于停词表‘stopwords.txt’里的单词（如下图），对数据进行拆分：</p>
+<p><img src="https://pic3.zhimg.com/80/v2-4d1ce6f7f368f318cf17de4324e6bbb2_1440w.jpg"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># import stopWord</span></span><br><span class="line">stopword_path = <span class="string">&#x27;data/stopwords.txt&#x27;</span> <span class="comment">#读取停词表</span></span><br><span class="line">stopword = []</span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(stopword_path,<span class="string">&#x27;r&#x27;</span>,encoding=<span class="literal">None</span>) <span class="keyword">as</span> file:</span><br><span class="line">    <span class="keyword">for</span> word <span class="keyword">in</span> file.readlines():</span><br><span class="line">        stopword.append(word.strip())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 文本分词</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cut_word</span>(<span class="params"><span class="built_in">str</span></span>):</span></span><br><span class="line">    line = re.sub(<span class="string">r&#x27;[a-zA-Z0-9]*&#x27;</span>,<span class="string">&#x27;&#x27;</span>,<span class="built_in">str</span>)</span><br><span class="line">    wordlist = jieba.lcut(line,cut_all=<span class="literal">False</span>) <span class="comment"># 提取单词</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27; &#x27;</span>.join([word <span class="keyword">for</span> word <span class="keyword">in</span> wordlist <span class="keyword">if</span> word <span class="keyword">not</span> <span class="keyword">in</span> stopword</span><br><span class="line">                     <span class="keyword">and</span> <span class="built_in">len</span>(word)&gt;<span class="number">1</span>]) <span class="comment"># 空格连接</span></span><br><span class="line"></span><br><span class="line">word_list = <span class="built_in">list</span>(df[<span class="string">&#x27;question&#x27;</span>].apply(cut_word)) <span class="comment"># 针对数据集里的questions进行分词提取</span></span><br></pre></td></tr></table></figure>
+
+<p>最后会将每一行的数据（文本）以关键词的形式进行输出，将结果输出为新的list，命名为‘word_list’。</p>
+<h2 id="TF-IDF词向量（TfidfVectorizer）"><a href="#TF-IDF词向量（TfidfVectorizer）" class="headerlink" title="TF-IDF词向量（TfidfVectorizer）"></a>TF-IDF词向量（TfidfVectorizer）</h2><p>在这个基础上，我们可以以这些关键词进行维度建立，从而从TF（Term Freqency 词频）和IDF（Inverse Document Frequency 逆文档频）来计算词向量。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># write a vectorizing function</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">transform</span>(<span class="params">dataset, n_features=<span class="number">1000</span></span>):</span></span><br><span class="line">    vectorizer = TfidfVectorizer(max_df=<span class="number">0.7</span>, max_features=n_features, min_df=<span class="number">0.01</span>,</span><br><span class="line">                                 use_idf=<span class="literal">True</span>, smooth_idf=<span class="literal">True</span>, lowercase=<span class="literal">False</span></span><br><span class="line">                                 , analyzer=<span class="string">&#x27;word&#x27;</span>)</span><br><span class="line">    X = vectorizer.fit_transform(dataset)</span><br><span class="line">    <span class="keyword">return</span> X, vectorizer</span><br></pre></td></tr></table></figure>
+
+<p>X是转化为词向量后的原始数据。如果只是计算词频，可以将use_idf设为False。这里我们按照单词进行计算，所以analyzer是’word’，而不是’char’。 </p>
+<h2 id="K-Means模型训练"><a href="#K-Means模型训练" class="headerlink" title="K-Means模型训练"></a>K-Means模型训练</h2><p>基于输出的vectorizer（词向量），我们可以放入K-Means&#x2F;MiniBatchK-Means的聚类模型中，去计算向量间的欧式距离（也可以计算余弦相似值等其他距离公式）。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">train</span>(<span class="params">X, vectorizer, true_k=<span class="number">10</span>, minibatch=<span class="literal">False</span>, showLable=<span class="literal">False</span></span>):</span></span><br><span class="line">    <span class="comment"># 使用采样数据还是原始数据训练k-means，</span></span><br><span class="line">    <span class="keyword">if</span> minibatch:</span><br><span class="line">        km = MiniBatchKMeans(n_clusters=true_k, init=<span class="string">&#x27;k-means++&#x27;</span>, n_init=<span class="number">1</span>,</span><br><span class="line">                             init_size=<span class="number">1000</span>, batch_size=<span class="number">1000</span>, verbose=<span class="literal">False</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        km = KMeans(n_clusters=true_k, init=<span class="string">&#x27;k-means++&#x27;</span>, max_iter=<span class="number">300</span>, n_init=<span class="number">1</span>,</span><br><span class="line">                    verbose=<span class="literal">False</span>)</span><br><span class="line">    km.fit(X)</span><br><span class="line">    <span class="keyword">if</span> showLable:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;Top terms per cluster:&quot;</span>)</span><br><span class="line">        order_centroids = km.cluster_centers_.argsort()[:, ::-<span class="number">1</span>]</span><br><span class="line">        terms = vectorizer.get_feature_names()</span><br><span class="line">        <span class="built_in">print</span>(vectorizer.get_stop_words())</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(true_k):</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;Cluster %d:&quot;</span> % i, end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">            <span class="keyword">for</span> ind <span class="keyword">in</span> order_centroids[i, :<span class="number">10</span>]:</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">&#x27; %s&#x27;</span> % terms[ind], end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">            <span class="built_in">print</span>()</span><br><span class="line">    result = <span class="built_in">list</span>(km.predict(X)) <span class="comment"># 输出预测结果（聚类）</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;Cluster distribution:&#x27;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">dict</span>([(i, result.count(i)) <span class="keyword">for</span> i <span class="keyword">in</span> result])) <span class="comment"># 每一个簇的个数</span></span><br><span class="line">    <span class="keyword">return</span> -km.score(X) 模型分数</span><br></pre></td></tr></table></figure>
+
+<p>使用K-Means的一个特点在于我们大部分情况不知道K是多少（除非本身对于数据的特征有固定的分类数量），即不知道该分为几个簇。所以通常我们可以让K-Means模型在给定范围的K值区间去训练，将模型训练后的分数&#x2F;结果以可视化的形式绘制出来，再做选择。</p>
+<p>这里我将这个过程命名为k_determine( )：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#指定簇的个数k</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">k_determin</span>():</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;测试选择最优参数&#x27;&#x27;&#x27;</span></span><br><span class="line">    dataset = word_list</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;%d documents&quot;</span> % <span class="built_in">len</span>(dataset))</span><br><span class="line">    X, vectorizer = transform(dataset, n_features=<span class="number">500</span>)</span><br><span class="line">    true_ks = []</span><br><span class="line">    scores = []</span><br><span class="line">    <span class="comment">#中心点的个数从3到200(根据自己的数据量进行设置)</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">3</span>, <span class="number">200</span>, <span class="number">1</span>):</span><br><span class="line">        score = train(X, vectorizer, true_k=i) / <span class="built_in">len</span>(dataset)</span><br><span class="line">        <span class="built_in">print</span>(i, score)</span><br><span class="line">        true_ks.append(i)</span><br><span class="line">        scores.append(score)</span><br><span class="line">    plt.figure(figsize=(<span class="number">8</span>, <span class="number">4</span>))</span><br><span class="line">    plt.plot(true_ks, scores, label=<span class="string">&quot;error&quot;</span>, color=<span class="string">&quot;red&quot;</span>, linewidth=<span class="number">1</span>)</span><br><span class="line">    plt.xlabel(<span class="string">&quot;n_features&quot;</span>) <span class="comment"># K值</span></span><br><span class="line">    plt.ylabel(<span class="string">&quot;error&quot;</span>)</span><br><span class="line">    plt.legend()</span><br><span class="line">    plt.show()</span><br><span class="line">    plt.savefig</span><br></pre></td></tr></table></figure>
+
+<p>最后呈现的可视化结果如下：</p>
+<p><img src="https://pic4.zhimg.com/80/v2-30322b4d919c90f5b1e06381df1167ef_1440w.jpg"></p>
+<p>理论上我们在选择K值的时候希望特定K值前后error差别较大，且模型error逐渐平稳的（即我们常说的肘部法）。同时也可以从实际的数据量、特征类型、训练结果多个维度来进行判断和选择。</p>
+<p>这里将K值设为100得到的训练结果比较可观：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span>():</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;在最优参数下输出聚类结果&#x27;&#x27;&#x27;</span></span><br><span class="line">    dataset = word_list</span><br><span class="line">    X, vectorizer = transform(dataset, n_features=<span class="number">500</span>)</span><br><span class="line">    <span class="built_in">print</span>(vectorizer.vocabulary_)</span><br><span class="line">    score = train(X, vectorizer, true_k=<span class="number">100</span>, showLable=<span class="literal">True</span>) / <span class="built_in">len</span>(dataset)</span><br><span class="line">    <span class="built_in">print</span>(score)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    start=time.time()</span><br><span class="line">    <span class="comment"># k_determin() #先确定k值</span></span><br><span class="line">    main()</span><br><span class="line">    end=time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;程序运行时间&#x27;</span>,end-start)</span><br></pre></td></tr></table></figure>
+
+<p>有了聚类后的预测之后，我们可以将分类的结果以标签的形式（创建新的一列数据），增加到原数据集里，并且按照Cluster（聚类）进行排序：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># add cluster label to the dataset</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add_cluster</span>(<span class="params">df_fit,df,true_k=<span class="number">100</span>,n_features=<span class="number">500</span></span>):</span></span><br><span class="line">    X, vectorizer = transform(df_fit, n_features)</span><br><span class="line">    km = KMeans(n_clusters=true_k, init=<span class="string">&#x27;k-means++&#x27;</span>, max_iter=<span class="number">300</span>, n_init=<span class="number">1</span>,</span><br><span class="line">                        verbose=<span class="literal">False</span>)</span><br><span class="line">    km.fit(X)</span><br><span class="line">    cluster_labels = km.predict(X)</span><br><span class="line">    df[<span class="string">&#x27;Cluster&#x27;</span>] = cluster_labels</span><br><span class="line"></span><br><span class="line">add_cluster(df_fit,df,true_k=<span class="number">100</span>,n_features=<span class="number">500</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看某一簇的聚类结果（questions）</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cluster</span>(<span class="params">df=df, i</span>):</span></span><br><span class="line">    <span class="keyword">return</span> df.loc[df.Cluster==i,<span class="string">&#x27;question&#x27;</span>]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 导出聚类结果</span></span><br><span class="line"><span class="comment"># export the question grouping by cluster</span></span><br><span class="line">grouped = df.sort_values(<span class="string">&#x27;Cluster&#x27;</span>, ascending = <span class="literal">True</span>)</span><br><span class="line">grouped.to_excel(excel_writer=<span class="string">&#x27;data/question_by_cluster.xlsx&#x27;</span>,sheet_name=<span class="string">&#x27;questions&#x27;</span>,</span><br><span class="line">                      engine=<span class="string">&#x27;xlsxwriter&#x27;</span>,index=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>文章首发于知乎专栏：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/413022694">https://zhuanlan.zhihu.com/p/413022694</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>Buy me a coffee</div>
+  <button onclick="document.querySelector('.post-reward').classList.toggle('active');">
+    Donate
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.png" alt="Klein WeChat Pay">
+        <span>WeChat Pay</span>
+      </div>
+      <div>
+        <img src="/images/alipay.png" alt="Klein Alipay">
+        <span>Alipay</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+        <a target="_blank" class="social-link" href="https://www.zhihu.com/people/wang-yuan-chen-24">
+          <span class="icon">
+            <i class="fab fa-zhihu"></i>
+          </span>
+
+          <span class="label">Zhihu</span>
+        </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/TF-IDF/" rel="tag"># TF-IDF</a>
+              <a href="/tags/NLP/" rel="tag"># NLP</a>
+              <a href="/tags/K-Means/" rel="tag"># K-Means</a>
+              <a href="/tags/Word-Embedding/" rel="tag"># Word Embedding</a>
+              <a href="/tags/Clustering-Analysis/" rel="tag"># Clustering Analysis</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/10/10/notes5/" rel="prev" title="基于DFA的广告性敏感词查询">
+                  <i class="fa fa-chevron-left"></i> 基于DFA的广告性敏感词查询
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/03/26/index/" rel="next" title="zero">
+                  zero <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 2021 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Klein</span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+<script>
+    var now = new Date(); 
+    function createtime() { 
+        var grt= new Date("06/25/2021 12:00:00");//此处修改你的建站时间或者网站上线时间 
+        now.setTime(now.getTime()+250); 
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days); 
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours); 
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum); 
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;} 
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum); 
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;} 
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 "; 
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒"; 
+    } 
+setInterval("createtime()",250);
+</script>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" integrity="sha256-yt2kYMy0w8AbtF89WXb2P1rfjcP/HTHLT7097U8Y5b8=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"position":"right","width":150,"height":300},"mobile":{"show":true}});</script></body>
+</html>

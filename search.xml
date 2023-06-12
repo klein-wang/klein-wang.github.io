@@ -1,0 +1,928 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>zero</title>
+    <url>/2022/03/26/index/</url>
+    <content><![CDATA[<h2 id="Welcome-to-My-Channel"><a href="#Welcome-to-My-Channel" class="headerlink" title="Welcome to My Channel"></a>Welcome to My Channel</h2><p>My name is Klein, and I am currently working and studying in <strong>financial</strong> and <strong>consulting</strong> sector in Shanghai. Having a <strong>statistical</strong> academic background, I want to use this channel to share my personal insights as well as some academic projects with you guys. </p>
+<p>Below I have attached several links to my other pages. Feel free to take a tour if you are interested in those topics. (Remember to access those links only at home page. Otherwise, the links won’t work as in the post.)</p>
+<div class="menu">
+    <ul>
+      <br>
+    <a href="cn">我的中文页面</a>
+      </br>
+          <br>
+    <a href="academics">Academic Interests</a>
+      </br>
+            <br>
+    <a href="journals">Scholarly Journals</a>
+            </br>
+            <br>
+    <a href="news2021">Newsroom</a>
+            </br>
+    </ul>
+</div>
+
+<p>In my personal columns at <a href="https://www.zhihu.com/people/wang-yuan-chen-24/columns">Zhihu</a>, I have been posting weekly articles about academia and reading notes. You can find my recent <a href="https://zhuanlan.zhihu.com/p/366324411">reading list</a> there, in which I recommend 20 of my favorite books to you. </p>
+]]></content>
+  </entry>
+  <entry>
+    <title>聚类分析 - 基于TF-IDF生成词向量的K-Means Clustering</title>
+    <url>/2021/10/10/notes6/</url>
+    <content><![CDATA[<p>在针对于自然语言处理中，时常会需要为无标签类的特征数据通过无监督&#x2F;半监督的学习方式来进行聚类分析。常见的聚类分析方法有K-Means，均值漂移，DBSCAN，GMM&#x2F;EM(高斯混合最大期望)，凝聚层次聚类（HAC）和图团体检测（Graph Community Detection）。（具体介绍可以参考下方链接）</p>
+<p><a href="https://link.zhihu.com/?target=https://blog.csdn.net/cainiao22222/article/details/84861210">六大常见聚类方法_cainiao22222的博客-CSDN博客_聚类的方法</a></p>
+<p>这篇文章中，我会具体介绍K-Means的聚类方法以及它的实战应用。</p>
+<p>因为原始输入的数据都是长文本类型，所以希望通过转为词向量的方式来表示文本内含的数据信息，从而可以通过比较向量间的距离去表达数据（文本）之间的相似度。而之后的聚类分析也会基于文本间的相似度来进行聚类。</p>
+<p>首先导入相关的Python packages：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> __future__ <span class="keyword">import</span> print_function</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line"><span class="keyword">import</span> jieba</span><br><span class="line"><span class="keyword">from</span> matplotlib <span class="keyword">import</span> pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">from</span> sklearn.cluster <span class="keyword">import</span> KMeans,MiniBatchKMeans</span><br><span class="line"><span class="keyword">from</span> sklearn.feature_extraction.text <span class="keyword">import</span> TfidfVectorizer</span><br></pre></td></tr></table></figure>
+
+<h2 id="Jieba分词"><a href="#Jieba分词" class="headerlink" title="Jieba分词"></a><strong>Jieba分词</strong></h2><p>首先通过Jieba的lcut()去将原文本拆成单词，这里基于停词表‘stopwords.txt’里的单词（如下图），对数据进行拆分：</p>
+<p><img src="https://pic3.zhimg.com/80/v2-4d1ce6f7f368f318cf17de4324e6bbb2_1440w.jpg"></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># import stopWord</span></span><br><span class="line">stopword_path = <span class="string">&#x27;data/stopwords.txt&#x27;</span> <span class="comment">#读取停词表</span></span><br><span class="line">stopword = []</span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(stopword_path,<span class="string">&#x27;r&#x27;</span>,encoding=<span class="literal">None</span>) <span class="keyword">as</span> file:</span><br><span class="line">    <span class="keyword">for</span> word <span class="keyword">in</span> file.readlines():</span><br><span class="line">        stopword.append(word.strip())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 文本分词</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cut_word</span>(<span class="params"><span class="built_in">str</span></span>):</span></span><br><span class="line">    line = re.sub(<span class="string">r&#x27;[a-zA-Z0-9]*&#x27;</span>,<span class="string">&#x27;&#x27;</span>,<span class="built_in">str</span>)</span><br><span class="line">    wordlist = jieba.lcut(line,cut_all=<span class="literal">False</span>) <span class="comment"># 提取单词</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27; &#x27;</span>.join([word <span class="keyword">for</span> word <span class="keyword">in</span> wordlist <span class="keyword">if</span> word <span class="keyword">not</span> <span class="keyword">in</span> stopword</span><br><span class="line">                     <span class="keyword">and</span> <span class="built_in">len</span>(word)&gt;<span class="number">1</span>]) <span class="comment"># 空格连接</span></span><br><span class="line"></span><br><span class="line">word_list = <span class="built_in">list</span>(df[<span class="string">&#x27;question&#x27;</span>].apply(cut_word)) <span class="comment"># 针对数据集里的questions进行分词提取</span></span><br></pre></td></tr></table></figure>
+
+<p>最后会将每一行的数据（文本）以关键词的形式进行输出，将结果输出为新的list，命名为‘word_list’。</p>
+<h2 id="TF-IDF词向量（TfidfVectorizer）"><a href="#TF-IDF词向量（TfidfVectorizer）" class="headerlink" title="TF-IDF词向量（TfidfVectorizer）"></a>TF-IDF词向量（TfidfVectorizer）</h2><p>在这个基础上，我们可以以这些关键词进行维度建立，从而从TF（Term Freqency 词频）和IDF（Inverse Document Frequency 逆文档频）来计算词向量。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># write a vectorizing function</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">transform</span>(<span class="params">dataset, n_features=<span class="number">1000</span></span>):</span></span><br><span class="line">    vectorizer = TfidfVectorizer(max_df=<span class="number">0.7</span>, max_features=n_features, min_df=<span class="number">0.01</span>,</span><br><span class="line">                                 use_idf=<span class="literal">True</span>, smooth_idf=<span class="literal">True</span>, lowercase=<span class="literal">False</span></span><br><span class="line">                                 , analyzer=<span class="string">&#x27;word&#x27;</span>)</span><br><span class="line">    X = vectorizer.fit_transform(dataset)</span><br><span class="line">    <span class="keyword">return</span> X, vectorizer</span><br></pre></td></tr></table></figure>
+
+<p>X是转化为词向量后的原始数据。如果只是计算词频，可以将use_idf设为False。这里我们按照单词进行计算，所以analyzer是’word’，而不是’char’。 </p>
+<h2 id="K-Means模型训练"><a href="#K-Means模型训练" class="headerlink" title="K-Means模型训练"></a>K-Means模型训练</h2><p>基于输出的vectorizer（词向量），我们可以放入K-Means&#x2F;MiniBatchK-Means的聚类模型中，去计算向量间的欧式距离（也可以计算余弦相似值等其他距离公式）。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">train</span>(<span class="params">X, vectorizer, true_k=<span class="number">10</span>, minibatch=<span class="literal">False</span>, showLable=<span class="literal">False</span></span>):</span></span><br><span class="line">    <span class="comment"># 使用采样数据还是原始数据训练k-means，</span></span><br><span class="line">    <span class="keyword">if</span> minibatch:</span><br><span class="line">        km = MiniBatchKMeans(n_clusters=true_k, init=<span class="string">&#x27;k-means++&#x27;</span>, n_init=<span class="number">1</span>,</span><br><span class="line">                             init_size=<span class="number">1000</span>, batch_size=<span class="number">1000</span>, verbose=<span class="literal">False</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        km = KMeans(n_clusters=true_k, init=<span class="string">&#x27;k-means++&#x27;</span>, max_iter=<span class="number">300</span>, n_init=<span class="number">1</span>,</span><br><span class="line">                    verbose=<span class="literal">False</span>)</span><br><span class="line">    km.fit(X)</span><br><span class="line">    <span class="keyword">if</span> showLable:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;Top terms per cluster:&quot;</span>)</span><br><span class="line">        order_centroids = km.cluster_centers_.argsort()[:, ::-<span class="number">1</span>]</span><br><span class="line">        terms = vectorizer.get_feature_names()</span><br><span class="line">        <span class="built_in">print</span>(vectorizer.get_stop_words())</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(true_k):</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;Cluster %d:&quot;</span> % i, end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">            <span class="keyword">for</span> ind <span class="keyword">in</span> order_centroids[i, :<span class="number">10</span>]:</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">&#x27; %s&#x27;</span> % terms[ind], end=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">            <span class="built_in">print</span>()</span><br><span class="line">    result = <span class="built_in">list</span>(km.predict(X)) <span class="comment"># 输出预测结果（聚类）</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;Cluster distribution:&#x27;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">dict</span>([(i, result.count(i)) <span class="keyword">for</span> i <span class="keyword">in</span> result])) <span class="comment"># 每一个簇的个数</span></span><br><span class="line">    <span class="keyword">return</span> -km.score(X) 模型分数</span><br></pre></td></tr></table></figure>
+
+<p>使用K-Means的一个特点在于我们大部分情况不知道K是多少（除非本身对于数据的特征有固定的分类数量），即不知道该分为几个簇。所以通常我们可以让K-Means模型在给定范围的K值区间去训练，将模型训练后的分数&#x2F;结果以可视化的形式绘制出来，再做选择。</p>
+<p>这里我将这个过程命名为k_determine( )：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#指定簇的个数k</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">k_determin</span>():</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;测试选择最优参数&#x27;&#x27;&#x27;</span></span><br><span class="line">    dataset = word_list</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;%d documents&quot;</span> % <span class="built_in">len</span>(dataset))</span><br><span class="line">    X, vectorizer = transform(dataset, n_features=<span class="number">500</span>)</span><br><span class="line">    true_ks = []</span><br><span class="line">    scores = []</span><br><span class="line">    <span class="comment">#中心点的个数从3到200(根据自己的数据量进行设置)</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">3</span>, <span class="number">200</span>, <span class="number">1</span>):</span><br><span class="line">        score = train(X, vectorizer, true_k=i) / <span class="built_in">len</span>(dataset)</span><br><span class="line">        <span class="built_in">print</span>(i, score)</span><br><span class="line">        true_ks.append(i)</span><br><span class="line">        scores.append(score)</span><br><span class="line">    plt.figure(figsize=(<span class="number">8</span>, <span class="number">4</span>))</span><br><span class="line">    plt.plot(true_ks, scores, label=<span class="string">&quot;error&quot;</span>, color=<span class="string">&quot;red&quot;</span>, linewidth=<span class="number">1</span>)</span><br><span class="line">    plt.xlabel(<span class="string">&quot;n_features&quot;</span>) <span class="comment"># K值</span></span><br><span class="line">    plt.ylabel(<span class="string">&quot;error&quot;</span>)</span><br><span class="line">    plt.legend()</span><br><span class="line">    plt.show()</span><br><span class="line">    plt.savefig</span><br></pre></td></tr></table></figure>
+
+<p>最后呈现的可视化结果如下：</p>
+<p><img src="https://pic4.zhimg.com/80/v2-30322b4d919c90f5b1e06381df1167ef_1440w.jpg"></p>
+<p>理论上我们在选择K值的时候希望特定K值前后error差别较大，且模型error逐渐平稳的（即我们常说的肘部法）。同时也可以从实际的数据量、特征类型、训练结果多个维度来进行判断和选择。</p>
+<p>这里将K值设为100得到的训练结果比较可观：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span>():</span></span><br><span class="line">    <span class="string">&#x27;&#x27;&#x27;在最优参数下输出聚类结果&#x27;&#x27;&#x27;</span></span><br><span class="line">    dataset = word_list</span><br><span class="line">    X, vectorizer = transform(dataset, n_features=<span class="number">500</span>)</span><br><span class="line">    <span class="built_in">print</span>(vectorizer.vocabulary_)</span><br><span class="line">    score = train(X, vectorizer, true_k=<span class="number">100</span>, showLable=<span class="literal">True</span>) / <span class="built_in">len</span>(dataset)</span><br><span class="line">    <span class="built_in">print</span>(score)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    start=time.time()</span><br><span class="line">    <span class="comment"># k_determin() #先确定k值</span></span><br><span class="line">    main()</span><br><span class="line">    end=time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;程序运行时间&#x27;</span>,end-start)</span><br></pre></td></tr></table></figure>
+
+<p>有了聚类后的预测之后，我们可以将分类的结果以标签的形式（创建新的一列数据），增加到原数据集里，并且按照Cluster（聚类）进行排序：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># add cluster label to the dataset</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add_cluster</span>(<span class="params">df_fit,df,true_k=<span class="number">100</span>,n_features=<span class="number">500</span></span>):</span></span><br><span class="line">    X, vectorizer = transform(df_fit, n_features)</span><br><span class="line">    km = KMeans(n_clusters=true_k, init=<span class="string">&#x27;k-means++&#x27;</span>, max_iter=<span class="number">300</span>, n_init=<span class="number">1</span>,</span><br><span class="line">                        verbose=<span class="literal">False</span>)</span><br><span class="line">    km.fit(X)</span><br><span class="line">    cluster_labels = km.predict(X)</span><br><span class="line">    df[<span class="string">&#x27;Cluster&#x27;</span>] = cluster_labels</span><br><span class="line"></span><br><span class="line">add_cluster(df_fit,df,true_k=<span class="number">100</span>,n_features=<span class="number">500</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看某一簇的聚类结果（questions）</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cluster</span>(<span class="params">df=df, i</span>):</span></span><br><span class="line">    <span class="keyword">return</span> df.loc[df.Cluster==i,<span class="string">&#x27;question&#x27;</span>]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 导出聚类结果</span></span><br><span class="line"><span class="comment"># export the question grouping by cluster</span></span><br><span class="line">grouped = df.sort_values(<span class="string">&#x27;Cluster&#x27;</span>, ascending = <span class="literal">True</span>)</span><br><span class="line">grouped.to_excel(excel_writer=<span class="string">&#x27;data/question_by_cluster.xlsx&#x27;</span>,sheet_name=<span class="string">&#x27;questions&#x27;</span>,</span><br><span class="line">                      engine=<span class="string">&#x27;xlsxwriter&#x27;</span>,index=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>文章首发于知乎专栏：<a href="https://zhuanlan.zhihu.com/p/413022694">https://zhuanlan.zhihu.com/p/413022694</a></p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>notes</category>
+      </categories>
+      <tags>
+        <tag>TF-IDF</tag>
+        <tag>NLP</tag>
+        <tag>K-Means</tag>
+        <tag>Word Embedding</tag>
+        <tag>Clustering Analysis</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>基于DFA的广告性敏感词查询</title>
+    <url>/2021/10/10/notes5/</url>
+    <content><![CDATA[<p>在针对于文本数据（尤其是非结构化、网络爬虫所抓取的数据中），我们时常需要在语义分析前进行敏感词的筛查。传统意义上可以通过加入正则表达式的方式来设定条件，依次遍历本地&#x2F;云端的敏感词词表，进行词语替换&#x2F;标注。</p>
+<p>然而从计算耗能的角度，如此遍历地去查看敏感词十分浪费时间，而且让程序在运行时过于依赖与数据库的检索能力，也不方便之后敏感词的增加（增加后需要触发更新索引）和数据结构的调整。</p>
+<p>这篇文章中我们将介绍基于DFA算法所搭建的敏感词查询。</p>
+<h2 id="DFA算法"><a href="#DFA算法" class="headerlink" title="DFA算法"></a>DFA算法</h2><p>DFA全称为：Deterministic Finite Automaton,即确定有穷自动机。其特征为：有一个有限状态集合和一些从一个状态通向另一个状态的边，每条边上标记有一个符号，其中一个状态是初态，某些状态是终态。但不同于不确定的有限自动机，DFA中不会有从同一状态出发的两条边标志有相同的符号。</p>
+<p>简单点说就是，它是是通过event和当前的state得到下一个state，即event+state&#x3D;nextstate。理解为系统中有多个节点，通过传递进入的event，来确定走哪个路由至另一个节点，而节点是有限的。</p>
+<p>这样的节点结构也正是我们在编程中十分熟悉的hashmap结构：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">&#x27;傻&#x27;</span>: &#123;</span><br><span class="line">        <span class="string">&#x27;逼&#x27;</span>: &#123;</span><br><span class="line">            <span class="string">&#x27;\x00&#x27;</span>: <span class="number">0</span></span><br><span class="line">        &#125;, </span><br><span class="line">        <span class="string">&#x27;子&#x27;</span>: &#123;</span><br><span class="line">            <span class="string">&#x27;\x00&#x27;</span>: <span class="number">0</span></span><br><span class="line">        &#125;, </span><br><span class="line">        <span class="string">&#x27;大&#x27;</span>: &#123;</span><br><span class="line">            <span class="string">&#x27;个&#x27;</span>: &#123;</span><br><span class="line">                <span class="string">&#x27;\x00&#x27;</span>: <span class="number">0</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, </span><br><span class="line">    <span class="string">&#x27;坏&#x27;</span>: &#123;</span><br><span class="line">        <span class="string">&#x27;蛋&#x27;</span>: &#123;</span><br><span class="line">            <span class="string">&#x27;\x00&#x27;</span>: <span class="number">0</span></span><br><span class="line">        &#125;, </span><br><span class="line">        <span class="string">&#x27;人&#x27;</span>: &#123;</span><br><span class="line">            <span class="string">&#x27;\x00&#x27;</span>: <span class="number">0</span>&#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>广告性敏感词</strong></p>
+<p>这里列举了一些日常常见的带有广告宣传性的敏感词词汇：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">兼职</span><br><span class="line">招聘</span><br><span class="line">网络</span><br><span class="line">QQ</span><br><span class="line">加我qq</span><br><span class="line">加我wx</span><br><span class="line">和我联系</span><br><span class="line">与我联系</span><br><span class="line">联系我</span><br><span class="line">联系电话</span><br><span class="line">给我回信</span><br><span class="line">一起交流Q</span><br><span class="line">一起交流</span><br><span class="line">业务主任</span><br><span class="line">打电话</span><br><span class="line">请来电</span><br><span class="line">为您服务</span><br><span class="line">联系电话</span><br><span class="line">邮箱</span><br><span class="line">发过来</span><br><span class="line">详细情况</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>把这个词表命名为‘banned_words.txt’文件。</p>
+<h2 id="代码实现（Python-3-7）"><a href="#代码实现（Python-3-7）" class="headerlink" title="代码实现（Python 3.7）"></a>代码实现（Python 3.7）</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> __future__ <span class="keyword">import</span> print_function</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># DFA算法</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DFAFilter</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.keyword_chains = &#123;&#125;  <span class="comment"># 关键词链表</span></span><br><span class="line">        self.delimit = <span class="string">&#x27;\x00&#x27;</span>  <span class="comment"># 限定</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">self, keyword</span>):</span></span><br><span class="line">        keyword = keyword.lower()  <span class="comment"># 关键词英文变为小写</span></span><br><span class="line">        chars = keyword.strip()  <span class="comment"># 关键字去除首尾空格和换行</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> chars:  <span class="comment"># 如果关键词为空直接返回</span></span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        level = self.keyword_chains</span><br><span class="line">        <span class="comment"># 遍历关键字的每个字</span></span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(chars)):</span><br><span class="line">            <span class="comment"># 如果这个字已经存在字符链的key中就进入其子字典</span></span><br><span class="line">            <span class="keyword">if</span> chars[i] <span class="keyword">in</span> level:</span><br><span class="line">                level = level[chars[i]]</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">isinstance</span>(level, <span class="built_in">dict</span>):</span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">                <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(i, <span class="built_in">len</span>(chars)):</span><br><span class="line">                    level[chars[j]] = &#123;&#125;</span><br><span class="line">                    last_level, last_char = level, chars[j]</span><br><span class="line">                    level = level[chars[j]]</span><br><span class="line">                last_level[last_char] = &#123;self.delimit: <span class="number">0</span>&#125;</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">        <span class="keyword">if</span> i == <span class="built_in">len</span>(chars) - <span class="number">1</span>:</span><br><span class="line">            level[self.delimit] = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">parse</span>(<span class="params">self, path</span>):</span></span><br><span class="line">        <span class="keyword">with</span> <span class="built_in">open</span>(path, encoding=<span class="string">&#x27;gbk&#x27;</span>) <span class="keyword">as</span> f: <span class="comment"># replace utf-8 with gbk</span></span><br><span class="line">            <span class="keyword">for</span> keyword <span class="keyword">in</span> f:</span><br><span class="line">                self.add(<span class="built_in">str</span>(keyword).strip())</span><br><span class="line">        <span class="built_in">print</span>(self.keyword_chains)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">filter</span>(<span class="params">self, message, repl=<span class="string">&quot;x&quot;</span></span>):</span></span><br><span class="line">        message = message.lower()</span><br><span class="line">        ret = []</span><br><span class="line">        start = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> start &lt; <span class="built_in">len</span>(message):</span><br><span class="line">            level = self.keyword_chains</span><br><span class="line">            step_ins = <span class="number">0</span></span><br><span class="line">            <span class="keyword">for</span> char <span class="keyword">in</span> message[start:]:</span><br><span class="line">                <span class="keyword">if</span> char <span class="keyword">in</span> level:</span><br><span class="line">                    step_ins += <span class="number">1</span></span><br><span class="line">                    <span class="keyword">if</span> self.delimit <span class="keyword">not</span> <span class="keyword">in</span> level[char]:</span><br><span class="line">                        level = level[char]</span><br><span class="line">                    <span class="keyword">else</span>:</span><br><span class="line">                        ret.append(repl * step_ins)</span><br><span class="line">                        start += step_ins - <span class="number">1</span></span><br><span class="line">                        <span class="keyword">break</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    ret.append(message[start])</span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                ret.append(message[start])</span><br><span class="line">            start += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="string">&#x27;&#x27;</span>.join(ret)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    time1 = time.time()</span><br><span class="line">    gfw = DFAFilter()</span><br><span class="line">    path = <span class="string">&quot;data/banned_words.txt&quot;</span> <span class="comment"># 存储敏感词词表的位置</span></span><br><span class="line">    gfw.parse(path)</span><br><span class="line">    text = df[<span class="string">&#x27;answerstr&#x27;</span>] <span class="comment"># 这里针对于一组问答文本数据进行敏感词筛查</span></span><br><span class="line"></span><br><span class="line">    result = text.apply(gfw.<span class="built_in">filter</span>) <span class="comment"># 对于数据集中的一列数据进行敏感词筛查</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(text) <span class="comment"># 原始文本</span></span><br><span class="line">    <span class="built_in">print</span>(result) <span class="comment"># 敏感词替换后的文本</span></span><br><span class="line">    time2 = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;总共耗时：&#x27;</span> + <span class="built_in">str</span>(time2 - time1) + <span class="string">&#x27;s&#x27;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这里我将一段文本作为input输入，看一下demo的输出情况：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">time1 = time.time()</span><br><span class="line">gfw = DFAFilter()</span><br><span class="line">path = <span class="string">&quot;data/banned_words.txt&quot;</span> <span class="comment"># 存储敏感词列表的位置</span></span><br><span class="line">gfw.parse(path)</span><br><span class="line"></span><br><span class="line">text = <span class="string">&#x27;如果对这个职位感兴趣，欢迎与我联系，询问我的邮箱和联系电话，或者直接加我qq咨询。&#x27;</span></span><br><span class="line">result = gfw.<span class="built_in">filter</span>(text)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(text)</span><br><span class="line"><span class="built_in">print</span>(result)</span><br><span class="line">time2 = time.time()</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;总共耗时：&#x27;</span> + <span class="built_in">str</span>(time2 - time1) + <span class="string">&#x27;s&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>如果对这个职位感兴趣，欢迎与我联系，询问我的邮箱和联系电话，或者直接加我qq咨询。</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>如果对这个职位感兴趣，欢迎xxxx，询问我的xx和xxxx，或者直接xxxxxx。</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>总共耗时：<span class="number">0.004984617233276367</span>s</span><br></pre></td></tr></table></figure>
+
+<p>输出的文本将所有敏感词词表里的广告性的词语进行了替换。这样的处理不仅可以规避很多商业广告（个人信息外露）的风险，同时也可以提供更为客观的语义数据，方便之后的语义分析（词向量的解析等等）。</p>
+<p>我们还可以基于敏感词的筛查，为每一段文本信息打上标签，标明这段文本中是否含有广告性的信息：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">find_sensitive</span>(<span class="params">text</span>):</span></span><br><span class="line">    <span class="keyword">if</span> re.findall(<span class="string">&#x27;x&#x27;</span>,text)==[]: <span class="comment"># 如果含有敏感词信息</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>这样也有利于我们快速的筛查出有效的文本信息。</p>
+<hr>
+<p>文章首发于知乎专栏：<a href="https://zhuanlan.zhihu.com/p/411422043">https://zhuanlan.zhihu.com/p/411422043</a></p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>notes</category>
+      </categories>
+      <tags>
+        <tag>NLP</tag>
+        <tag>DFA</tag>
+        <tag>Data Preprocess</tag>
+        <tag>Sensitivity Analysis</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SnowNLP - 文本情感分析</title>
+    <url>/2021/10/10/notes4/</url>
+    <content><![CDATA[<blockquote>
+<p>SnowNLP是一个python写的类库，可以方便的处理中文文本内容，是受到了TextBlob的启发而写的，由于现在大部分的自然语言处理库基本都是针对英文的，于是写了一个方便处理中文的类库，并且和TextBlob不同的是，这里没有用NLTK，所有的算法都是自己实现的，并且自带了一些训练好的字典。</p>
+</blockquote>
+<p>snownlp package也是jieba之外的一个python分装NLP库，主要的功能涵盖了中文分词、词性标注、文本分类、文本相似度查看以及情感分析等等。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 先安装package</span></span><br><span class="line">pip install snownlp</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://pic4.zhimg.com/80/v2-299a136ff1d31ad9cd0de90c39707a43_1440w.jpg"></p>
+<h2 id="代码运行"><a href="#代码运行" class="headerlink" title="代码运行"></a>代码运行</h2><p>这篇文章会分享日常工作场景下使用snownlp.SnowNLP做文本情感分析的场景功能：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">```</span><br><span class="line"><span class="comment"># 读取数据，创建dataframe，这里命名为df</span></span><br><span class="line">```</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> snownlp <span class="keyword">import</span> SnowNLP</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">snow_result</span>(<span class="params">answerstr</span>):</span></span><br><span class="line">    ```</span><br><span class="line">    输入为一个文本string，通过调用SnowNLP.sentiments去返回文本的情感分数（<span class="number">0</span>到<span class="number">1</span>之间）</span><br><span class="line">    ```</span><br><span class="line">    s = SnowNLP(<span class="built_in">str</span>(answerstr))</span><br><span class="line">    <span class="keyword">if</span> s.sentiments &gt;= <span class="number">0.6</span>: <span class="comment"># 这里将情感分数大于0.6的文本归位正面积极性的情感文本</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span> <span class="comment"># 最终输出0或1，去判断文本的情感属性</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 根据df里的“answerstr”列，将读取文本后的情感分析结果添加到新的一列，命名为“positive”</span></span><br><span class="line">df[<span class="string">&#x27;positive&#x27;</span>] = df[<span class="string">&#x27;answerstr&#x27;</span>].apply(snow_result)</span><br></pre></td></tr></table></figure>
+
+<p>这里以两段文本为例：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 文本</span></span><br><span class="line">text1 = <span class="string">&#x27;这部电影真的不错，全程无尿点&#x27;</span></span><br><span class="line">text2 = <span class="string">&#x27;这部电影简直烂到爆，不好看&#x27;</span></span><br><span class="line"></span><br><span class="line">s1 = SnowNLP(text1)</span><br><span class="line">s2 = SnowNLP(text2)</span><br><span class="line"><span class="built_in">print</span>(s1.sentences, s1.sentiments)</span><br><span class="line"><span class="built_in">print</span>(s2.sentences, s2.sentiments)</span><br><span class="line"></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>[<span class="string">&#x27;这部电影真的不错&#x27;</span>, <span class="string">&#x27;全程无尿点&#x27;</span>] <span class="number">0.9338292009902669</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>[<span class="string">&#x27;这部电影简直烂到爆&#x27;</span>, <span class="string">&#x27;不好看&#x27;</span>] <span class="number">0.0656738892951001</span></span><br></pre></td></tr></table></figure>
+
+<p>综合来看snownlp的情感分析在对于评价性的文本段落而言更加准确，然后在一些知识库问答（Knowledge Base Question Answering，KBQA）中，对于文本回答效果差一些，因为文本中会相对缺少情绪词语，特征数据的稀疏导致准确度的下降。</p>
+<h2 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># snownlp中支持情感分析的模块在sentiment文件夹中，其核心代码为__init__.py</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Sentiment</span>(<span class="params"><span class="built_in">object</span></span>):</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.classifier = Bayes() <span class="comment"># 使用的是Bayes的模型</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">save</span>(<span class="params">self, fname, iszip=<span class="literal">True</span></span>):</span></span><br><span class="line">        self.classifier.save(fname, iszip) <span class="comment"># 保存最终的模型</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">load</span>(<span class="params">self, fname=data_path, iszip=<span class="literal">True</span></span>):</span></span><br><span class="line">        self.classifier.load(fname, iszip) <span class="comment"># 加载贝叶斯模型</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 分词以及去停用词的操作    </span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">handle</span>(<span class="params">self, doc</span>):</span></span><br><span class="line">        words = seg.seg(doc) <span class="comment"># 分词</span></span><br><span class="line">        words = normal.filter_stop(words) <span class="comment"># 去停用词</span></span><br><span class="line">        <span class="keyword">return</span> words <span class="comment"># 返回分词后的结果</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">train</span>(<span class="params">self, neg_docs, pos_docs</span>):</span></span><br><span class="line">        data = []</span><br><span class="line">        <span class="comment"># 读入负样本</span></span><br><span class="line">        <span class="keyword">for</span> sent <span class="keyword">in</span> neg_docs:</span><br><span class="line">            data.append([self.handle(sent), <span class="string">&#x27;neg&#x27;</span>])</span><br><span class="line">        <span class="comment"># 读入正样本</span></span><br><span class="line">        <span class="keyword">for</span> sent <span class="keyword">in</span> pos_docs:</span><br><span class="line">            data.append([self.handle(sent), <span class="string">&#x27;pos&#x27;</span>])</span><br><span class="line">        <span class="comment"># 调用的是Bayes模型的训练方法</span></span><br><span class="line">        self.classifier.train(data)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">classify</span>(<span class="params">self, sent</span>):</span></span><br><span class="line">        <span class="comment"># 1、调用sentiment类中的handle方法</span></span><br><span class="line">        <span class="comment"># 2、调用Bayes类中的classify方法</span></span><br><span class="line">        ret, prob = self.classifier.classify(self.handle(sent)) <span class="comment"># 调用贝叶斯中的classify方法</span></span><br><span class="line">        <span class="keyword">if</span> ret == <span class="string">&#x27;pos&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> prob</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>-probclass Sentiment(<span class="built_in">object</span>):</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span>(<span class="params">self</span>):</span></span><br><span class="line">        self.classifier = Bayes() <span class="comment"># 使用的是Bayes的模型</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">save</span>(<span class="params">self, fname, iszip=<span class="literal">True</span></span>):</span></span><br><span class="line">        self.classifier.save(fname, iszip) <span class="comment"># 保存最终的模型</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">load</span>(<span class="params">self, fname=data_path, iszip=<span class="literal">True</span></span>):</span></span><br><span class="line">        self.classifier.load(fname, iszip) <span class="comment"># 加载贝叶斯模型</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 分词以及去停用词的操作    </span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">handle</span>(<span class="params">self, doc</span>):</span></span><br><span class="line">        words = seg.seg(doc) <span class="comment"># 分词</span></span><br><span class="line">        words = normal.filter_stop(words) <span class="comment"># 去停用词</span></span><br><span class="line">        <span class="keyword">return</span> words <span class="comment"># 返回分词后的结果</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">train</span>(<span class="params">self, neg_docs, pos_docs</span>):</span></span><br><span class="line">        data = []</span><br><span class="line">        <span class="comment"># 读入负样本</span></span><br><span class="line">        <span class="keyword">for</span> sent <span class="keyword">in</span> neg_docs:</span><br><span class="line">            data.append([self.handle(sent), <span class="string">&#x27;neg&#x27;</span>])</span><br><span class="line">        <span class="comment"># 读入正样本</span></span><br><span class="line">        <span class="keyword">for</span> sent <span class="keyword">in</span> pos_docs:</span><br><span class="line">            data.append([self.handle(sent), <span class="string">&#x27;pos&#x27;</span>])</span><br><span class="line">        <span class="comment"># 调用的是Bayes模型的训练方法</span></span><br><span class="line">        self.classifier.train(data)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">classify</span>(<span class="params">self, sent</span>):</span></span><br><span class="line">        <span class="comment"># 1、调用sentiment类中的handle方法</span></span><br><span class="line">        <span class="comment"># 2、调用Bayes类中的classify方法</span></span><br><span class="line">        ret, prob = self.classifier.classify(self.handle(sent)) <span class="comment"># 调用贝叶斯中的classify方法</span></span><br><span class="line">        <span class="keyword">if</span> ret == <span class="string">&#x27;pos&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> prob</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>-prob</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>另外推荐一篇CSDN上的深度好文，非常详细地解析了snownlp源码各个模块的实现。</p>
+<p><a href="https://link.zhihu.com/?target=https://blog.csdn.net/google19890102/article/details/80091502">情感分析–深入snownlp原理和实践_null的专栏-CSDN</a></p>
+<h2 id="SnowNLP其他功能："><a href="#SnowNLP其他功能：" class="headerlink" title="SnowNLP其他功能："></a>SnowNLP其他功能：</h2><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># input text first ......</span></span><br><span class="line">text = <span class="string">&#x27; &#x27;</span></span><br><span class="line"></span><br><span class="line">s = SnowNLP(text)</span><br><span class="line"><span class="comment"># 分词</span></span><br><span class="line"><span class="built_in">print</span>(s.words)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 词性标注</span></span><br><span class="line">tags = [x <span class="keyword">for</span> x <span class="keyword">in</span> s.tags]</span><br><span class="line"><span class="built_in">print</span>(tags)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 断句</span></span><br><span class="line"><span class="built_in">print</span>(s.sentences) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 拼音</span></span><br><span class="line"><span class="built_in">print</span>(s.pinyin)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 繁体转简体</span></span><br><span class="line"><span class="built_in">print</span>(s.han) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 关键字抽取</span></span><br><span class="line">s = SnowNLP(text)</span><br><span class="line"><span class="built_in">print</span>(s.keywords(limit=<span class="number">10</span>)) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 概括总结文章</span></span><br><span class="line"><span class="built_in">print</span>(s.summary(limit=<span class="number">4</span>)) </span><br><span class="line"></span><br><span class="line"><span class="comment"># 信息衡量</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">TF-IDF是一种统计方法，用以评估一字词对于一个文件集或一个语料库中的其中一份文件的重要程度。</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">TF词频越大越重要，但是文中会的“的”，“你”等无意义词频很大，却信息量几乎为0，这种情况导致单纯看词频评价词语重要性是不准确的。因此加入了idf</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">IDF的主要思想是：如果包含词条t的文档越少，也就是n越小，IDF越大，则说明词条t越重要</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">TF-IDF综合起来，才能准确的综合的评价一词对文本的重要性。</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line">s = SnowNLP([</span><br><span class="line">    [<span class="string">&#x27;性格&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>],</span><br><span class="line">    [<span class="string">&#x27;温柔&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>],</span><br><span class="line">    [<span class="string">&#x27;温柔&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>],</span><br><span class="line">    [<span class="string">&#x27;好人&#x27;</span>],</span><br><span class="line">    [<span class="string">&#x27;性格&#x27;</span>, <span class="string">&#x27;善良&#x27;</span>],</span><br><span class="line">])</span><br><span class="line"><span class="built_in">print</span>(s.tf) <span class="comment"># [&#123;&#x27;性格&#x27;: 1, &#x27;善良&#x27;: 1&#125;, &#123;&#x27;温柔&#x27;: 1, &#x27;善良&#x27;: 2&#125;, &#123;&#x27;温柔&#x27;: 1, &#x27;善良&#x27;: 1&#125;, &#123;&#x27;好人&#x27;: 1&#125;, &#123;&#x27;性格&#x27;: 1, &#x27;善良&#x27;: 1&#125;]</span></span><br><span class="line"><span class="built_in">print</span>(s.idf) <span class="comment"># &#123;&#x27;性格&#x27;: 0.33647223662121295, &#x27;善良&#x27;: -1.0986122886681098, &#x27;温柔&#x27;: 0.33647223662121295, &#x27;好人&#x27;: 1.0986122886681098&#125;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 文本相似性</span></span><br><span class="line"><span class="built_in">print</span>(s.sim([<span class="string">&#x27;温柔&#x27;</span>])) <span class="comment"># [0, 0.2746712135683371, 0.33647223662121295, 0, 0]</span></span><br><span class="line"><span class="built_in">print</span>(s.sim([<span class="string">&#x27;善良&#x27;</span>])) <span class="comment"># [-1.0986122886681098, -1.3521382014376737, -1.0986122886681098, 0, -1.0986122886681098]</span></span><br><span class="line"><span class="built_in">print</span>(s.sim([<span class="string">&#x27;好人&#x27;</span>])) <span class="comment"># [0, 0, 0, 1.4175642434427222, 0]</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>文章首发于知乎专栏：<a href="https://zhuanlan.zhihu.com/p/408160149">https://zhuanlan.zhihu.com/p/408160149</a></p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>notes</category>
+      </categories>
+      <tags>
+        <tag>Machine Learning</tag>
+        <tag>NLP</tag>
+        <tag>Sentiment Analysis</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>sklearn.metrics - 回归/分类模型的评估方法</title>
+    <url>/2021/10/10/notes3/</url>
+    <content><![CDATA[<h2 id="sklearn-metrics"><a href="#sklearn-metrics" class="headerlink" title="sklearn.metrics"></a>sklearn.metrics</h2><blockquote>
+<p>The<code>sklearn.metrics</code>module implements functions assessing prediction error for specific purposes. These metrics are detailed in sections on <a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23classification-metrics">Classification metrics</a>, <a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23multilabel-ranking-metrics">Multilabel ranking metrics</a>, <a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23regression-metrics">Regression metrics</a> and <a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23clustering-metrics">Clustering metrics</a>.</p>
+</blockquote>
+<h2 id="分类模型"><a href="#分类模型" class="headerlink" title="分类模型"></a>分类模型</h2><p><strong>accuracy_score</strong></p>
+<p>分类准确率分数是指所有分类正确的百分比。分类准确率这一衡量分类器的标准比较容易理解，但是它不能告诉你响应值的潜在分布，并且它也不能告诉你分类器犯错的类型。所以在使用的时候，一般需要搭配matplotlib等数据可视化工具来观察预测的分类情况，与实际的结果做更加直观的比较。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np  </span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> accuracy_score  </span><br><span class="line">y_pred = [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>, <span class="number">3</span>]  </span><br><span class="line">y_true = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]  </span><br><span class="line">accuracy_score(y_true, y_pred)  <span class="comment"># 默认normalization = True</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.5</span></span><br><span class="line">accuracy_score(y_true, y_pred, normalize=<span class="literal">False</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">2</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>recall_score</strong></p>
+<p>召回率 &#x3D;提取出的正确信息条数 &#x2F;样本中的信息条数。通俗地说，就是所有准确的条目有多少被检索出来了。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">recall_score(y_true, y_pred, labels=<span class="literal">None</span>, pos_label=<span class="number">1</span>,average=<span class="string">&#x27;binary&#x27;</span>, sample_weight=<span class="literal">None</span>)</span><br><span class="line">参数average : string, [<span class="literal">None</span>, ‘micro’, ‘macro’(default), ‘samples’, ‘weighted’]</span><br></pre></td></tr></table></figure>
+
+<p>将一个二分类matrics拓展到多分类或多标签问题时，我们可以将数据看成多个二分类问题的集合，每个类都是一个二分类。接着，我们可以通过跨多个分类计算每个二分类metrics得分的均值，这在一些情况下很有用。你可以使用average参数来指定。 </p>
+<ul>
+<li>macro：计算二分类metrics的均值，为每个类给出相同权重的分值。</li>
+<li>weighted:对于不均衡数量的类来说，计算二分类metrics的平均，通过在每个类的score上进行加权实现。 </li>
+<li>micro：给出了每个样本类以及它对整个metrics的贡献的pair（sample-weight），而非对整个类的metrics求和，它会每个类的metrics上的权重及因子进行求和，来计算整个份额。</li>
+<li>samples：应用在multilabel问题上。它不会计算每个类，相反，它会在评估数据中，通过计算真实类和预测类的差异的metrics，来求平均（sample_weight-weighted） </li>
+<li>average：average&#x3D;None将返回一个数组，它包含了每个类的得分.</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> recall_score  </span><br><span class="line">y_true = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>]  </span><br><span class="line">y_pred = [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>]  </span><br><span class="line">recall_score(y_true, y_pred, average=<span class="string">&#x27;macro&#x27;</span>)   </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.33</span>...  </span><br><span class="line">recall_score(y_true, y_pred, average=<span class="string">&#x27;micro&#x27;</span>)   </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.33</span>...  </span><br><span class="line">recall_score(y_true, y_pred, average=<span class="string">&#x27;weighted&#x27;</span>)   </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.33</span>...  </span><br><span class="line">recall_score(y_true, y_pred, average=<span class="literal">None</span>)  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>array([<span class="number">1.</span>,  <span class="number">0.</span>, <span class="number">0.</span>])  </span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>roc_curve</strong></p>
+<p>ROC曲线指受试者工作特征曲线&#x2F;接收器操作特性(receiver operating characteristic，ROC)曲线,是反映灵敏性和特效性连续变量的综合指标,是用构图法揭示敏感性和特异性的相互关系，它通过将连续变量设定出多个不同的临界值，从而计算出一系列敏感性和特异性。ROC曲线是根据一系列不同的二分类方式（分界值或决定阈），<strong>以真正例率（也就是灵敏度）（True Positive Rate,TPR）为纵坐标，假正例率（1-特效性）（False Positive Rate,FPR）为横坐标</strong>绘制的曲线。</p>
+<p>通过ROC我们可以观察到模型正确识别的正例的比例与模型错误地把负例数据识别成正例的比例之间的权衡。TPR的增加以FPR的增加为代价。ROC曲线下的面积是模型准确率的度量，<strong>AUC</strong>（Area under roc curve）。</p>
+<p>TPR &#x3D; TP &#x2F;（TP + FN） （正样本预测结果数 &#x2F; 正样本实际数）</p>
+<p>FPR &#x3D; FP &#x2F;（FP + TN） （被预测为正的负样本结果数 &#x2F;负样本实际数）</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np  </span><br><span class="line"><span class="keyword">from</span> sklearn <span class="keyword">import</span> metrics  </span><br><span class="line">y = np.array([<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>])  </span><br><span class="line">scores = np.array([<span class="number">0.1</span>, <span class="number">0.4</span>, <span class="number">0.35</span>, <span class="number">0.8</span>])  </span><br><span class="line">fpr, tpr, thresholds = metrics.roc_curve(y, scores, pos_label=<span class="number">2</span>)  </span><br><span class="line">fpr  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>array([<span class="number">0.</span> ,  <span class="number">0.5</span>,  <span class="number">0.5</span>, <span class="number">1.</span> ])  </span><br><span class="line">tpr  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>array([<span class="number">0.5</span>,  <span class="number">0.5</span>,  <span class="number">1.</span> , <span class="number">1.</span> ])  </span><br><span class="line">thresholds  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>array([<span class="number">0.8</span> ,  <span class="number">0.4</span> ,  <span class="number">0.35</span>, <span class="number">0.1</span> ])  </span><br><span class="line"></span><br><span class="line"><span class="comment"># check auc score</span></span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> auc   </span><br><span class="line">metrics.auc(fpr, tpr)   </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.75</span>   </span><br><span class="line"></span><br><span class="line"><span class="comment"># 也可以直接根据预测值+真实值来计算出auc值，略过roc的计算过程</span></span><br><span class="line">‘’‘</span><br><span class="line">sklearn.metrics.roc_auc_score(y_true, y_score, average=<span class="string">&#x27;macro&#x27;</span>, sample_weight=<span class="literal">None</span>)</span><br><span class="line">average : string, [<span class="literal">None</span>, ‘micro’, ‘macro’(default), ‘samples’, ‘weighted’]</span><br><span class="line">’‘’</span><br><span class="line"><span class="comment"># 真实值（必须是二值）、预测值（可以是0/1,也可以是proba值）</span></span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> roc_auc_score  </span><br><span class="line">y_true = np.array([<span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>])  </span><br><span class="line">y_scores = np.array([<span class="number">0.1</span>, <span class="number">0.4</span>, <span class="number">0.35</span>, <span class="number">0.8</span>])  </span><br><span class="line">roc_auc_score(y_true, y_scores)  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.75</span>  </span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>confusion metric</strong></p>
+<p>混淆矩阵（confusion matrix），又称为可能性表格或是错误矩阵。它是一种特定的矩阵用来呈现算法性能的可视化效果。其每一列代表预测值，每一行代表的是实际的类别。例如：</p>
+<p><img src="https://pic4.zhimg.com/80/v2-c91b24a72e2d91d03f15f84acae75e87_1440w.jpg"></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">confusion_matric(y_true, y_pred, labels=<span class="literal">None</span>, pos_label=<span class="number">1</span>,</span><br><span class="line">                 average=<span class="string">&#x27;binary&#x27;</span>, sample_weight=<span class="literal">None</span>)</span><br></pre></td></tr></table></figure>
+
+<p><strong>precision_score</strong></p>
+<p>计算精确度——precision <img src="https://www.zhihu.com/equation?tex==TP/(TP/FP)"></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">precision_score(y_true, y_pred, labels=<span class="literal">None</span>, pos_label=<span class="number">1</span>,</span><br><span class="line">                 average=<span class="string">&#x27;binary&#x27;</span>)</span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://pic2.zhimg.com/80/v2-a3b6092e30d2eab7d2372007aec15105_1440w.jpg"></p>
+<p>这张图比较详细地把roc、confusion matrix、precision score以及统计学假设检验的Type I、Type II error放在一起进行归纳，形成完整的知识体系。</p>
+<h2 id="回归模型"><a href="#回归模型" class="headerlink" title="回归模型"></a>回归模型</h2><p><strong>explained_variance_score</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">explained_variance_score(y_true, y_pred, sample_weight=<span class="literal">None</span>, </span><br><span class="line">                         multioutput=‘uniform_average’)</span><br><span class="line"><span class="comment"># 回归方差(反应自变量与因变量之间的相关程度)</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>MAE</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">mean_absolute_error(y_true,y_pred,sample_weight=<span class="literal">None</span>,</span><br><span class="line">                    multioutput=‘uniform_average’)</span><br><span class="line"><span class="comment"># 平均绝对误差</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>MSE</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">mean_squared_error(y_true, y_pred, sample_weight=<span class="literal">None</span>, </span><br><span class="line">                   multioutput=‘uniform_average’)</span><br><span class="line"><span class="comment"># 均方差</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>MAE (median)</strong></p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">median_absolute_error(y_true, y_pred) </span><br><span class="line"><span class="comment"># 中值绝对误差</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>R Square</strong></p>
+<p><img src="https://www.zhihu.com/equation?tex=R%5E2"> 作为衡量模型拟合度的一个量，是一个比例形式，计算方式 <img src="https://www.zhihu.com/equation?tex==%5Cfrac%7BSSR%7D%7BTSS%7D+=1+-+%5Cfrac%7BRSS%7D%7BTSS%7D"> ，即被解释方差&#x2F;总方差。</p>
+<ul>
+<li>TSS是执行回归分析前，响应变量固有的方差。</li>
+<li>RSS残差平方和就是，回归模型不能解释的方差。</li>
+<li>SSR回归模型可以解释的方差。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">r2_score(y_true, y_pred,sample_weight=<span class="literal">None</span>,multioutput=‘uniform_average’) </span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>Note：这里只是列举了一些日常常用的对于Model Selection的评估方式，文末处附上scikit-learn官网上对于metrics的完整公式介绍：</p>
+<p><img src="https://pic1.zhimg.com/80/v2-c4297f1c1090fb30ed8e5fb8089ee630_1440w.jpg"></p>
+<p>感兴趣的朋友可以到<a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23model-evaluation">官网页面</a>进行浏览。</p>
+<hr>
+<p>文章首发于知乎专栏：<a href="https://zhuanlan.zhihu.com/p/408078074">https://zhuanlan.zhihu.com/p/408078074</a></p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>notes</category>
+      </categories>
+      <tags>
+        <tag>Machine Learning</tag>
+        <tag>Model Evaluation</tag>
+        <tag>Statistics</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Jieba结巴分词 - 关键词提取</title>
+    <url>/2021/10/10/notes2/</url>
+    <content><![CDATA[<p>Jieba analysis package在为中文语句做分词，以及关键词提取（Keyword Search）中都开发了想要的功能，这里我们尝试对一些中文文本提取关键词信息。</p>
+<p>首先安装Jieba到python环境中：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">pip install jieba</span><br></pre></td></tr></table></figure>
+
+<p>在让python浏览中文文本文件（txt file）时，需要注意不同于英语，汉字有编码问题。不同系统都有不同的默认编码，不同版本的Python所接受的编码也会略微不同，从网上下载的文本文件，也可能与自己电脑系统的编码不统一。</p>
+<p><img src="https://pic3.zhimg.com/80/v2-e553723eea3debda90e8d7cf00760732_1440w.jpg"></p>
+<p>在确保文本文件可以被Python正确读取后，我们可以开始导入jieba.analyse进行分析：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> jieba.analyse <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">&#x27;sample.txt&#x27;</span>,<span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> f:   <span class="comment"># &#x27;r&#x27;是只读，a为覆盖，w为覆盖写入</span></span><br><span class="line">    data = f.read() <span class="comment"># 读取sample.txt</span></span><br></pre></td></tr></table></figure>
+
+<p>具体代码的实现可以通过两种方法：</p>
+<h2 id="TF-IDF"><a href="#TF-IDF" class="headerlink" title="TF-IDF"></a>TF-IDF</h2><p>全称是Term Frequency - inverse document frequency，也就是说TF-IDF是在通过TF（词频）以及IDF（逆文档频率）两个指标来共同决定某个词语的重要程度。</p>
+<p>词频（Term Frequency）是指某个词语出现的频率。如果某个词语出现的次数多，也就说明这个词语重要性可能会很高。但是在这样的计算下，很多汉字中的虚词——“的，地，得”可能在文中出现非常多次，而它们可能大概率并不是关键词。为了将它们排除在我们的关键词列表里，我们引入逆文档频率（Inverse Document Frequency）。</p>
+<p>IDF在尝试计算出某个词语在各文档中出现的频率。假设一共用10篇文档，某个词语A在10篇文章中都出现过，而另一个词语B可能只在其中3篇文章中出现，这个时候按照IDF的逻辑我们会倾向于认为词语B更关键，而词语A更有可能是在语句中扮演辅助成分，或作为虚词出现在各个文章中。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># TF-IDF</span></span><br><span class="line"><span class="keyword">for</span> keyword, weight <span class="keyword">in</span> extract_tags(data, topK=<span class="number">10</span>, withWeight=<span class="literal">True</span>): <span class="comment"># 输出10个关键词</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;%s %s&#x27;</span> % (keyword, weight))</span><br></pre></td></tr></table></figure>
+
+<h2 id="TextRank"><a href="#TextRank" class="headerlink" title="TextRank"></a>TextRank</h2><p><img src="https://pic4.zhimg.com/80/v2-e9d49b0b2483c51ae2bfaa29b474b6cf_1440w.jpg"></p>
+<p>TextRank首先会提取词汇，形成节点；然后依据词汇的关联，建立链接。依照连接节点的多少，给每个节点赋予一个初始的权重数值。然后就开始迭代。根据某个词所连接所有词汇的权重，重新计算该词汇的权重，然后把重新计算的权重传递下去。直到这种变化达到均衡态，权重数值不再发生改变。这与Google的网页排名算法PageRank，在思想上是一致的。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># TextRank</span></span><br><span class="line"><span class="keyword">for</span> keyword, weight <span class="keyword">in</span> textrank(data, withWeight=<span class="literal">True</span>):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;%s %s&#x27;</span> % (keyword, weight))</span><br></pre></td></tr></table></figure>
+
+<p>文本预处理 - Preprocessing</p>
+<p>很多时候网络爬取的数据都会存在词语间突然出现空格&#x2F;分行的情况，为了格式化我们的文本数据，可以通过一个函数来替换到文本中所有的分行和空格：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_current_txt</span>(<span class="params">path</span>):</span></span><br><span class="line">    sentences = <span class="string">&#x27;&#x27;</span></span><br><span class="line">    <span class="keyword">for</span> line <span class="keyword">in</span> <span class="built_in">open</span>(path, encoding=<span class="string">&#x27;utf-8&#x27;</span>): <span class="comment"># 逐行浏览</span></span><br><span class="line">        line = line.replace(<span class="string">&quot;\n&quot;</span>, <span class="string">&quot;&quot;</span>) <span class="comment"># 替换分行</span></span><br><span class="line">        line = line.replace(<span class="string">&quot; &quot;</span>, <span class="string">&quot;&quot;</span>) <span class="comment"># 替换空格</span></span><br><span class="line">        sentences = sentences + line <span class="comment"># 累计叠加成新的文本</span></span><br><span class="line">    <span class="keyword">return</span> sentences</span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    txt_name = [[<span class="string">&#x27;原来文件名.txt&#x27;</span>,<span class="string">&#x27;现在文件名.txt&#x27;</span>],</span><br><span class="line">                [<span class="string">&#x27;原来文件名2.txt&#x27;</span>,<span class="string">&#x27;现在文件名2.txt&#x27;</span>],</span><br><span class="line">                [<span class="string">&#x27;原来文件名3.txt&#x27;</span>,<span class="string">&#x27;现在文件名3.txt&#x27;</span>]]</span><br><span class="line">    <span class="keyword">for</span> txt <span class="keyword">in</span> txt_name:</span><br><span class="line">        before = <span class="string">&#x27;添加文档位置&#x27;</span> + txt[<span class="number">0</span>] <span class="comment"># 添加原先存放文档的地址</span></span><br><span class="line">        after = <span class="string">&#x27;添加你自己文档位置&#x27;</span> + txt[<span class="number">1</span>] <span class="comment"># 添加现在存放文档的地址</span></span><br><span class="line">        t = get_current_txt(before) <span class="comment"># 读取原先文档并处理分行/空格</span></span><br><span class="line">        f = <span class="built_in">open</span>(after, <span class="string">&#x27;w&#x27;</span>, encoding=<span class="string">&#x27;utf-8&#x27;</span>) <span class="comment"># 打开现在的文档地址</span></span><br><span class="line">        f.write(t) <span class="comment"># 写入处理后的文本数据</span></span><br></pre></td></tr></table></figure>
+
+<p>这样我们就可以输入完整的文本数据，让jieba.analyse用TF-IDF和TextRank两种方法来返回关键词信息。这里我选取了一篇之前专栏的文章：</p>
+<p><a href="https://zhuanlan.zhihu.com/p/338452489">一元星辰：谈BI市场下数字化商业赋能</a></p>
+<p>将文章的文本数据摘取作为sample.txt，然后我们就可以运行以上的代码去读取文章，并要求jieba.analyse返回关键词：（下面是两种方面输出后的结果）</p>
+<p><strong>TF_IDF</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">可视化 0.369726432312012</span><br><span class="line">数据 0.20101799849087085</span><br><span class="line">图表 0.16318001018954956</span><br><span class="line">信息 0.126218875501982</span><br><span class="line">坐标系 0.11240099543195195</span><br><span class="line">展示 0.1092186171581081</span><br><span class="line">常用 0.09681224207972974</span><br><span class="line">人脑 0.08479316470486487</span><br><span class="line">需要 0.0782789305135135</span><br><span class="line">6000 0.07180040542282282</span><br><span class="line">10 0.07180040542282282</span><br><span class="line">处理 0.06499526315147147</span><br><span class="line">互联网 0.06416119598459459</span><br><span class="line">图片 0.05742791656423423</span><br><span class="line">文字 0.0571978868163964</span><br><span class="line">使用者 0.055311289908408404</span><br><span class="line">直观 0.05134426137237237</span><br><span class="line">企业 0.050711978197597596</span><br><span class="line">时间 0.049003479068588596</span><br><span class="line">视觉 0.048304771756696695</span><br></pre></td></tr></table></figure>
+
+<p><strong>TextRank</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">数据 1.0</span><br><span class="line">可视化 0.8616217990920787</span><br><span class="line">信息 0.6603168376702779</span><br><span class="line">图表 0.4579503276921454</span><br><span class="line">展示 0.42674942737210975</span><br><span class="line">坐标系 0.3667410289166505</span><br><span class="line">时间 0.3485679361828327</span><br><span class="line">需要 0.3415765183679188</span><br><span class="line">处理 0.32510596429267163</span><br><span class="line">互联网 0.2968714145838468</span><br><span class="line">企业 0.28058421354057617</span><br><span class="line">使用 0.24092571291709966</span><br><span class="line">能够 0.23633751203504783</span><br><span class="line">图片 0.23320236256686494</span><br><span class="line">开始 0.22269396812968928</span><br><span class="line">设计 0.22192943857746153</span><br><span class="line">人脑 0.21622140595826397</span><br><span class="line">文字 0.19250796187402044</span><br><span class="line">用户 0.1923436713149694</span><br><span class="line">使用者 0.18612255020137908</span><br></pre></td></tr></table></figure>
+
+<p>感兴趣的朋友欢迎尝试看看，应用到不同的商业&#x2F;生活场景中。</p>
+<hr>
+<p>文章首发于知乎专栏：<a href="https://zhuanlan.zhihu.com/p/406354320">https://zhuanlan.zhihu.com/p/406354320</a></p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>notes</category>
+      </categories>
+      <tags>
+        <tag>Machine Learning</tag>
+        <tag>Keyword Extract</tag>
+        <tag>TF-IDF</tag>
+        <tag>TextRank</tag>
+        <tag>NLP</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>LSTM - Time Series Anomaly Detection</title>
+    <url>/2021/10/10/notes1/</url>
+    <content><![CDATA[<p>关于LSTM所做的时间序列模型训练有非常多的实际场景，这里选取了基于标普500指数的每日收盘价数据（S&amp;P 500 daily closing price）。</p>
+<h2 id="关于异常检测（Anomaly-Detection）"><a href="#关于异常检测（Anomaly-Detection）" class="headerlink" title="关于异常检测（Anomaly Detection）"></a>关于异常检测（Anomaly Detection）</h2><ol>
+<li>异常检测是指发现&#x2F;识别罕见事件&#x2F;数据点的任务。一些应用包括银行欺诈检测、医学成像中的肿瘤检测和书面文本中的错误。</li>
+<li>人们已经提出了许多有监督和无监督的异常检测方法。其中一些方法包括：一类支持向量（one-class SVM）机、贝叶斯网络（Bayesian Networks）、聚类分析（Cluster analysis）和神经网络。</li>
+<li>我们将使用LSTM自动编码器（Autoencoder）神经网络来检测&#x2F;预测标普500指数的异常(价格突然变化)。</li>
+</ol>
+<h2 id="LSTM自动编码器"><a href="#LSTM自动编码器" class="headerlink" title="LSTM自动编码器"></a>LSTM自动编码器</h2><p>自动编码器神经网络试图学习其输入的数据表示。所以自动编码器的输入和输出是一样的?不完全是。通常，我们希望学习使用较少参数&#x2F;内存的高效编码方式（efficient encoding）。从某种意义上说，我们是在迫使模型使用尽可能少的参数来学习数据最重要的特征。</p>
+<p>以下是使用自动编码器进行异常检测的基本步骤:</p>
+<ol>
+<li>在正常数据(无异常)上训练自动编码器</li>
+<li>取一个新的数据点，并尝试使用自动编码器重建它</li>
+<li>如果新数据点的错误（error）(重构错误)超过某个阈值（threshold），我们将该示例标记为异常</li>
+</ol>
+<p>另外因为在这个例子中我们面对的是标普500的时间序列数据（1986年-2018年），所以我们需要考虑到数据的时间属性。（LSTM的特征）</p>
+<h2 id="数据预处理-Preprocessing"><a href="#数据预处理-Preprocessing" class="headerlink" title="数据预处理 Preprocessing"></a>数据预处理 Preprocessing</h2><blockquote>
+<p>标普500指数是一个股票市场指数，衡量在美国证券交易所上市的500家大公司的股票表现。它是最常被关注的股票指数之一，许多人认为它是美国股市的最佳代表之一。</p>
+<p>——维基百科</p>
+</blockquote>
+<p>数据来源于Kaggle（<a href="http://link.zhihu.com/?target=https://www.kaggle.com/pdquant/sp500-daily-19862018">S&amp;P500 Daily Closing Price</a>），含有两个变量：日期和收盘价（Date，Closing Price）。将数据集保存到本地，文件名“spx.csv”</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">import pandas as pd</span><br><span class="line"># import dataset as S&amp;P500 closing price</span><br><span class="line">df = pd.read_csv(&#x27;spx.csv&#x27;, parse_dates=[&#x27;date&#x27;], index_col=&#x27;date&#x27;</span><br><span class="line"></span><br><span class="line">plt.plot(df, label=&#x27;close price&#x27;)</span><br><span class="line">plt.legend();</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://pic2.zhimg.com/80/v2-7178970f21470c0785441b9c1f92758d_1440w.jpg"></p>
+<p>将95%的数据集用来训练模型：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">train_size = <span class="built_in">int</span>(<span class="built_in">len</span>(df) * <span class="number">0.95</span>)</span><br><span class="line">test_size = <span class="built_in">len</span>(df) - train_size</span><br><span class="line"></span><br><span class="line"><span class="comment"># 划分数据集</span></span><br><span class="line">train, test = df.iloc[<span class="number">0</span>:train_size], df.iloc[train_size:<span class="built_in">len</span>(df)]</span><br><span class="line"><span class="built_in">print</span>(train.shape, test.shape) <span class="comment"># 查看数据维度</span></span><br></pre></td></tr></table></figure>
+
+<p>接下来，我们将使用训练数据（train）重新缩放（rescale）数据，并将相同的转换应用到测试数据（test）上：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> sklearn.preprocessing <span class="keyword">import</span> StandardScaler <span class="comment">#载入StandardScaler</span></span><br><span class="line"></span><br><span class="line">scaler = StandardScaler()</span><br><span class="line">scaler = scaler.fit(train[[<span class="string">&#x27;close&#x27;</span>]]) <span class="comment">#对收盘价进行rescale</span></span><br><span class="line"></span><br><span class="line">train[<span class="string">&#x27;close&#x27;</span>] = scaler.transform(train[[<span class="string">&#x27;close&#x27;</span>]])</span><br><span class="line">test[<span class="string">&#x27;close&#x27;</span>] = scaler.transform(test[[<span class="string">&#x27;close&#x27;</span>]]</span><br></pre></td></tr></table></figure>
+
+<p>随后需要进一步将数据拆分为子数据集：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_dataset</span>(<span class="params">X, y, time_steps=<span class="number">1</span></span>):</span></span><br><span class="line">    Xs, ys = [], []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(X) - time_steps):</span><br><span class="line">        v = X.iloc[i:(i + time_steps)].values</span><br><span class="line">        Xs.append(v)</span><br><span class="line">        ys.append(y.iloc[i + time_steps])</span><br><span class="line">    <span class="keyword">return</span> np.array(Xs), np.array(ys)</span><br><span class="line"></span><br><span class="line">TIME_STEPS = <span class="number">30</span> <span class="comment">#设为30天</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># reshape to [samples, time_steps, n_features]</span></span><br><span class="line"></span><br><span class="line">X_train, y_train = create_dataset(</span><br><span class="line">  train[[<span class="string">&#x27;close&#x27;</span>]],</span><br><span class="line">  train.close,</span><br><span class="line">  TIME_STEPS</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">X_test, y_test = create_dataset(</span><br><span class="line">  test[[<span class="string">&#x27;close&#x27;</span>]],</span><br><span class="line">  test.close,</span><br><span class="line">  TIME_STEPS</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(X_train.shape）</span><br></pre></td></tr></table></figure>
+
+<p>建立&amp;训练模型 LSTM Model</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">model = keras.Sequential()</span><br><span class="line">model.add(keras.layers.LSTM(</span><br><span class="line">    units=<span class="number">64</span>,</span><br><span class="line">    input_shape=(X_train.shape[<span class="number">1</span>], X_train.shape[<span class="number">2</span>])</span><br><span class="line">))</span><br><span class="line">model.add(keras.layers.Dropout(rate=<span class="number">0.2</span>))</span><br><span class="line">model.add(keras.layers.RepeatVector(n=X_train.shape[<span class="number">1</span>]))</span><br><span class="line">model.add(keras.layers.LSTM(units=<span class="number">64</span>, return_sequences=<span class="literal">True</span>))</span><br><span class="line">model.add(keras.layers.Dropout(rate=<span class="number">0.2</span>))</span><br><span class="line">model.add(</span><br><span class="line">  keras.layers.TimeDistributed(</span><br><span class="line">    keras.layers.Dense(units=X_train.shape[<span class="number">2</span>])</span><br><span class="line">  )</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">model.<span class="built_in">compile</span>(loss=<span class="string">&#x27;mae&#x27;</span>, optimizer=<span class="string">&#x27;adam&#x27;</span>）</span><br></pre></td></tr></table></figure>
+
+<p>RepeatVector()是在让数据重复输入n次。在LSTM层中添加return_sequences&#x3D;True使其返回序列。最后，TimeDistributed层创建了一个向量，其长度与前一层的输出数量相同。这样我们可以开始用历史数据来训练模型：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">history = model.fit(</span><br><span class="line">    X_train, y_train,</span><br><span class="line">    epochs=<span class="number">10</span>,</span><br><span class="line">    batch_size=<span class="number">32</span>,</span><br><span class="line">    validation_split=<span class="number">0.1</span>,</span><br><span class="line">    shuffle=<span class="literal">False</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>接下来我们需要来分析模型的有效性，通过比较实际价格与模型预测的收盘价之间的平均绝对误差（Mean Absolute Error）来实现：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">sns.distplot(train_mae_loss, bins=<span class="number">50</span>, kde=<span class="literal">True</span>);</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://pic1.zhimg.com/80/v2-b78d216d984ede87105b7bf90c5e2004_1440w.jpg"></p>
+<p>通过直方图可以看到MAE的分布，作者在可以把Threshold值设为了0.65。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">X_test_pred = model.predict(X_test)</span><br><span class="line">test_mae_loss = np.mean(np.<span class="built_in">abs</span>(X_test_pred - X_test), axis=<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">THRESHOLD = <span class="number">0.65</span></span><br><span class="line"></span><br><span class="line">test_score_df = pd.DataFrame(index=test[TIME_STEPS:].index)</span><br><span class="line">test_score_df[<span class="string">&#x27;loss&#x27;</span>] = test_mae_loss</span><br><span class="line">test_score_df[<span class="string">&#x27;threshold&#x27;</span>] = THRESHOLD</span><br><span class="line">test_score_df[<span class="string">&#x27;anomaly&#x27;</span>] = test_score_df.loss &gt; test_score_df.threshold</span><br><span class="line">test_score_df[<span class="string">&#x27;close&#x27;</span>] = test[TIME_STEPS:].close</span><br><span class="line"></span><br><span class="line">plt.plot(test_score_df.index, test_score_df.loss, label=<span class="string">&#x27;loss&#x27;</span>)</span><br><span class="line">plt.plot(test_score_df.index, test_score_df.threshold, label=<span class="string">&#x27;threshold&#x27;</span>)</span><br><span class="line">plt.xticks(rotation=<span class="number">25</span>)</span><br><span class="line">plt.legend();</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://pic1.zhimg.com/80/v2-c2af49897f9e033420cf9a0d3a24568c_1440w.jpg"></p>
+<p>最后通过把判断条件（test_score_df.loss &gt; test_score_df.threshold）为True的（即属于异常值）的数据点标注出来，可以更加直观的查看异常的日期分布：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">anomalies = test_score_df[test_score_df.anomaly == <span class="literal">True</span>]</span><br><span class="line"></span><br><span class="line">plt.plot(</span><br><span class="line">  test[TIME_STEPS:].index, </span><br><span class="line">  scaler.inverse_transform(test[TIME_STEPS:].close), </span><br><span class="line">  label=<span class="string">&#x27;close price&#x27;</span></span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">sns.scatterplot(</span><br><span class="line">  anomalies.index,</span><br><span class="line">  scaler.inverse_transform(anomalies.close),</span><br><span class="line">  color=sns.color_palette()[<span class="number">3</span>],</span><br><span class="line">  s=<span class="number">52</span>,</span><br><span class="line">  label=<span class="string">&#x27;anomaly&#x27;</span></span><br><span class="line">)</span><br><span class="line">plt.xticks(rotation=<span class="number">25</span>)</span><br><span class="line">plt.legend();</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://pic2.zhimg.com/80/v2-3c18b1d0f6aa7114e96346d8243bbec9_1440w.jpg"></p>
+<p>完整的项目代码可以参考：<a href="http://link.zhihu.com/?target=https://github.com/curiousily/Deep-Learning-For-Hackers/blob/master/14.time-series-anomaly-detection.ipynb">Deep-Learning-For-Hackers&#x2F;14.time-series-anomaly-detection.ipynb at master · curiousily&#x2F;Deep-Learning-For-Hackers</a></p>
+<hr>
+<p>文章首发于知乎专栏：<a href="https://zhuanlan.zhihu.com/p/406170335">https://zhuanlan.zhihu.com/p/406170335</a></p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>notes</category>
+      </categories>
+      <tags>
+        <tag>Machine Learning</tag>
+        <tag>LSTM</tag>
+        <tag>Time-Series</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Attention Is All You Need</title>
+    <url>/2021/08/17/p7/</url>
+    <content><![CDATA[<p><strong>Attention Is All You Need</strong></p>
+<p>Authors: Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, Illia Polosukhin</p>
+<p>Link: <a href="https://link.zhihu.com/?target=https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a></p>
+<h2 id="Abstract"><a href="#Abstract" class="headerlink" title="Abstract"></a>Abstract</h2><blockquote>
+<p>The dominant sequence transduction models are based on complex recurrent or convolutional neural networks (RNN, CNN) in an encoder-decoder configuration. The best performing models also connect the encoder and decoder through an attention mechanism. </p>
+<p>We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles by over 2 BLEU. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data.</p>
+</blockquote>
+<h2 id="Limitation-of-RNN-model"><a href="#Limitation-of-RNN-model" class="headerlink" title="Limitation of RNN model"></a>Limitation of RNN model</h2><p>Recurrent models typically factor computation along the symbol positions of the input and output sequences. Aligning the positions to steps in computation time, they generate a sequence of hidden states <img src="https://www.zhihu.com/equation?tex=h_t+"> , as a function of the previous hidden state <img src="https://www.zhihu.com/equation?tex=h_%7Bt-1%7D"> and the input for position t. This inherently sequential nature precludes parallelization within training examples, which becomes critical at longer sequence lengths, as memory constraints limit batching across examples. </p>
+<h2 id="Why-Self-Attention"><a href="#Why-Self-Attention" class="headerlink" title="Why Self-Attention"></a>Why Self-Attention</h2><p>First advantage is the total computational complexity per layer. When it comes to self-attention, the amount of computation can be parallelized, as measured by the minimum number of sequential operations required. </p>
+<p><img src="https://pic2.zhimg.com/80/v2-3ebc69bc8606497dc9ee9e2f89b99c3d_1440w.jpg"></p>
+<p>Also, as a self-attention layer connects all positions with a constant number of sequentially executed operations, the overall model improves the difficulties in reducing path length in long-range dependencies in the network.</p>
+<h2 id="Model-Architecture-Transformer"><a href="#Model-Architecture-Transformer" class="headerlink" title="Model Architecture (Transformer)"></a>Model Architecture (Transformer)</h2><p>Instead of paying attention to the last state of the encoder as is usually done with RNNs, in each step of the decoder we look at all the states of the encoder, being able to access information about all the elements of the input sequence. This is what attention does, it extracts information from the whole sequence, a weighted sum of all the past encoder states. This allows the decoder to assign greater weight or importance to a certain element of the input for each element of the output.</p>
+<p>Within the self-attention mechanism of the model, there are 3 elements being introduced in the paper: <strong>The Query, The Value and The Key</strong>. The model is computing the dot product of the query with all keys, divide each by the square root of dk, and apply a softmax function to obtain the weights on the values.</p>
+<p><img src="https://www.zhihu.com/equation?tex=Attention(Q,K,V)=softmax(%5Cfrac%7BQK%5ET%7D%7B%5Csqrt%7Bd_k%7D%7D)V"></p>
+<p>The attention scores measure how much focus to place on other places or words of the input sequence w.r.t a word at a certain position. That is, the dot product of the query vector with the key vector of the respective word we’re scoring. </p>
+<p><strong>Multi-head Attention</strong></p>
+<p>In the previous description the attention scores are focused on the whole sentence at a time, this would produce the same results even if two sentences contain the same words in a different order. Instead, authors in the paper proposed Multi-head Attention, which they added attention to different segments of the words. </p>
+<blockquote>
+<p>“We can give the self-attention greater power of discrimination, by combining several self-attention heads, dividing the words vectors into a fixed number (h, number of heads) of chunks, and then self-attention is applied on the corresponding chunks, using Q, K and V sub-matrices.”, Peter Bloem. </p>
+</blockquote>
+<p><img src="https://pic4.zhimg.com/80/v2-fb47315cfee387e13803197ae64ab19b_1440w.jpg"></p>
+<p>After calculating the dot product of every head, we concatenate the output matrices and multiply them by an additional weights matrix. This final matrix captures information from all the attention heads.</p>
+<p><img src="https://www.zhihu.com/equation?tex=MultiHead(Q,K,V)=Concat(head_1,+...,+head_h)W%5EO,+"></p>
+<p><img src="https://www.zhihu.com/equation?tex=%5Cmbox%7Bwhere+%7D+head_i=Attention(QW%5EQ_i,KW%5EK_i,VW%5EV_i)"></p>
+<p>The paper also addressed positional encoding approach to solve the issue with the order of the words in the sentence. Briefly speaking, the same scores would be computed even if we shuffle up the words in an input sentence, due to permutation invariant characteristic of the self-attention mechanism. </p>
+<p>The authors has applied a function to map the position in the sentence to a real valued vector. The network will then learn how to use this information. Another approach would be to use a position embedding, similar to word embedding, coding every known position with a vector.</p>
+<p>Next, a residual connection is introduced around each sub-layer (attention and Fully connected fee-forward network, summing up the output of the layer with its input, followed by a layer normalization. Before every residual connection, a regularization is applied: </p>
+<p>“We apply dropout to the output of each sub-layer, before it is added to the sub-layer input and normalized. In addition, we apply dropout to the sums of the embeddings and the positional encodings in both the encoder and decoder stacks” with a dropout rate of 0.1.</p>
+<p>The figure below shows the components detailed:</p>
+<p><img src="https://pic2.zhimg.com/80/v2-9d0bc477be197df621aca2ed01a69e5d_1440w.jpg"></p>
+<p>There are many other details which I haven’t touched on here. Feel free to discuss more thoughts in this open space . The paper offers an excellent opportunity to people who are interested in technical innovation on sequence-sequence translation tasks. The article in <strong>towardsdatascience</strong> also did a great job in explaining the transformer model regarding this paper. You can read it from <a href="https://towardsdatascience.com/attention-is-all-you-need-discovering-the-transformer-paper-73e5ff5e0634">here</a>. </p>
+<h2 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h2><p>The model performance was evaluated by looking at the BLEU score on the English-to-German and English-to-French newstest2014 tests as a fraction of the training cost. </p>
+<p><img src="https://pic3.zhimg.com/80/v2-5291c76e7a50ba517ecba226297e4ebe_1440w.jpg"></p>
+<p>The table here summarizes the results and compares models’ translation quality and training costs to other model architectures from the literature. </p>
+<p>For translation tasks, the Transformer can be trained significantly faster than architectures based on recurrent or convolutional layers, specifically on both WMT 2014 English-to-German and WMT 2014 English-to-French translation tasks.</p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>journal review</category>
+      </categories>
+      <tags>
+        <tag>Machine Learning</tag>
+        <tag>NLP</tag>
+        <tag>Self-Attention</tag>
+        <tag>Transformer</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>读书笔记《西线无战事》</title>
+    <url>/2021/08/14/%E8%A5%BF%E7%BA%BF%E6%97%A0%E6%88%98%E4%BA%8B/</url>
+    <content><![CDATA[<p>德文原名：I’m Westen nichts Neues</p>
+<h2 id="三句话来概述"><a href="#三句话来概述" class="headerlink" title="三句话来概述"></a>三句话来概述</h2><ol>
+<li>《西线无战事》以一战中西面战线川为历史背景，以第一人称的手法讲述了主人公保罗·博伊默尔和同学受到校长坎通列克及其沙文主义的煽动，满怀着狂热的“爱国主义热忱”投人到了这场所谓的“保家卫国”的战争中。</li>
+<li>在持续四年的战争里，他目睹了可怕的伤亡以及战争对人类肉体和心灵的摧残，见证了战争的非人道性。起初的“爱国主义狂热”荡然无存，留下的仅仅是肉体的伤痛和对德国军国主义以及参战目的的质疑。</li>
+<li>故事里没有冒险的意识，只有青春被背叛的感觉，以及对战争貌似简单的控诉……这是为整整一代牺牲者讲述的故事。</li>
+</ol>
+<h2 id="作者"><a href="#作者" class="headerlink" title="作者"></a>作者</h2><p>埃里希·玛利亚·雷马克（德语:Erich Maria Remarque，1898年6月22日-1970年9月25日）德国小说家，主要由於著有《西线无战事》(1929)一书而知名。这部小说可能是描写第一次世界大战最著名和最有代表性的作品。</p>
+<p>雷马克18岁被征入伍，在战斗中多次负伤。战后在他写作小说期间，雷马克担任赛车手和体育记者。《西线无战事》的情节就是描述士兵在战壕中刻板的日常生活，他们似乎没有过去，也不会有将来。它的书名，即战报中公式化的语言，很能体现那冷漠和简洁的风格，以轻描淡写的语言纪录每日的战争恐怖。</p>
+<img src="/2021/08/14/%E8%A5%BF%E7%BA%BF%E6%97%A0%E6%88%98%E4%BA%8B/1.jpg" class="">
+
+<p>该书出版后立即在国际上获得声誉，1930年根据它拍成的美国电影也同样获得成功。它的续篇《归途》（Der Weg zuruck,1931）描写1918年德国的崩溃。1932年雷马克离开德国，前往瑞士。1933年他的书被纳粹党查禁。1939年他流亡美国，1947年入美国籍。第二次世界大战以后，他定居在瑞士的龙科港(Porto Ronco)，直至去世。</p>
+<hr>
+<h3 id="我是如何发现这本书的？"><a href="#我是如何发现这本书的？" class="headerlink" title="我是如何发现这本书的？"></a>我是如何发现这本书的？</h3><p>2020年正是作者雷马克逝世50周年，在《西线无故事》1929年出版当年，这本书也取得了“欧洲恒古以来书业的最大成就”。这部小说可以说是无愧为反战小说的代表作，雷马克以冷峻、清醒的笔调揭露了战争的残酷恐怖和荒谬，细致入微地描绘了当时“迷惘一代”的心态，以及他们的觉醒，引起了千万读者的共鸣。</p>
+<p>而我所阅读的这本译作正好是译者姜已于2020年所进行最新翻译的。姜乙并非德语专业出身，她本科就读于中国音乐学院歌剧系，后留学德国。她的代表译作包括《悉达多》《人类群星闪耀时》《德米安：埃米尔·辛克莱年少时的故事》。</p>
+<p>有关姜已的采访：<a href="https://link.zhihu.com/?target=https://www.thepaper.cn/newsDetail_forward_8086716">https://www.thepaper.cn/newsDetail_forward_8086716</a></p>
+<h3 id="推荐给谁来阅读？"><a href="#推荐给谁来阅读？" class="headerlink" title="推荐给谁来阅读？"></a>推荐给谁来阅读？</h3><p>作品描述的文字相当美，并不是想借用华丽的词藻来粉饰世界的太平，而是以主角的眼光望出去世界就是如此朦胧，在恐惧、饥饿与兽性的泥潭中打滚时，那些明白了如何在火线上活下去的老兵们，虽然都年纪不满二十，可内心的灵魂早已垂垂老矣。</p>
+<p>作为反战小说的代表作之一，作者以一种淡然的态度缓缓地叙述着战争是如何消磨年轻人的肉体和心灵乃至灵魂，渐渐被世界孤立，茫然而孤独。如同小说开章所写：“他们虽然躲过了炮弹，却被这场战争所毁灭。”</p>
+<h2 id="读后感"><a href="#读后感" class="headerlink" title="读后感"></a>读后感</h2><blockquote>
+<p>生活&#x2F;行为&#x2F;思维&#x2F;想法上的影响</p>
+</blockquote>
+<p>就如同书名一样，虽然故事发生在第一次世界大战时期，全书并没有大规模地描述战争的场面，而是从保罗这位普通士兵的第一人称人物视角来展现战争给他和他的战友们所带来的天翻地覆。</p>
+<p>在小说开篇作者雷马克还是以一种欢快、幽默的笔调来描述主人公保罗·博伊默尔和战友们在军队里的生活见闻，将每一位战友的人物形象都刻画得十分生动，也让这一群初入战场的欧洲青年对生活拾起了乐观和向往。</p>
+<img src="/2021/08/14/%E8%A5%BF%E7%BA%BF%E6%97%A0%E6%88%98%E4%BA%8B/2.jpg" class="">
+
+<p>而到了之后保罗获准回家探望姐姐和母亲时，战争对他身上的变化才得以逐渐彰显出来。回到熟悉的家乡，无论是待在家中或是走进人潮拥挤的酒吧，他都发现自己再也无法融入其中，回不到参战前的正常生活。</p>
+<p>即使对于像我一样没有任何参军经历的大部分读者，在阅读雷马克笔下的文字时都能体验和感受到残酷战壕生活中的孤独与恐惧。故事的结尾写道德军在军方报告中，仅仅用一句话“西线无战事”便瞬间将这些隐藏在和平假象中的血与泪都全书抹灭，这也意味着这群当时抱着满腔热血的青年在战争过后都无一幸存。</p>
+<blockquote>
+<p>雷马克是位杰出的、有魅力的作家和艺术家。他令人震惊的笔触时而凶猛残忍、不加修饰，时而又在无限而深刻的不安中，营造细腻温柔的节奏与脉搏、光影与色彩。</p>
+</blockquote>
+<p><strong>散点叙事 - 时间模糊</strong></p>
+<p>从宏观叙事的角度来看，雷马克的高明之处在于他并没有选择传统的线性叙事方式，而是采取了散点叙事，为整个西线战场的故事展开增加了许多时间的模糊性与破碎性。</p>
+<p>在整个叙事进程中，所有的事件、场景、细节都不是按时间顺序依次出现，更确切得说是随着主人公保罗·博伊默尔的经历、回想与联想一阵又一阵随机浮现的。如此叙事的氛围仿佛就像是一场漫长得无始无终的战争，无从判断它到底持续了多长时间，只能感觉到季节、日夜的变换——在这场战争里，日常意义上的时间已然不复存在。</p>
+<p>与这般破碎时间相伴的，是不断破碎的世界，以及不断破碎的人，从精神到肉体。正是这种强烈的破碎感所生成的莫名压抑的气息始终弥漫在整部小说里，像看不见的雾一般包裹着所有人物，让他们带着浓重的幻灭感和虚无感一步步地走入死神的怀抱，化作战争里的尘埃。</p>
+<p><strong>主观性的弱化</strong></p>
+<p>同时，雷马克还着意把第一人称下保罗的主观感觉和情<a href="https://link.zhihu.com/?target=http://www.wenzhangba.com/huati/ganqing/">感情</a>绪的表达进行了减弱和隐藏，从而最大限度地让事件现场的一幕幕场景本身传达一切，因此才会让读者在阅读时形成极为真切的身处现场的感觉，仿佛那些异常惨烈的战斗场景就发生在眼前——那被炮弹削掉半个脑袋后还在奔跑的人，那些被毒气熏死在战壕里的人，那些被炮弹炸成碎片挂在树上的人，那些被弹片切去了手臂或大腿慢慢死去的人，那些在战地医院里因无人理睬或粗暴救治而死去的人，那些死于流弹的人，那死在保罗背上的亲密战友卡钦斯基，甚至还有那匹拖着肠子还在四处乱撞发出刺耳哀鸣的战马……某种意义上，这构成了电影式的叙事手段，强化了一个个镜头前的代入感。</p>
+<img src="/2021/08/14/%E8%A5%BF%E7%BA%BF%E6%97%A0%E6%88%98%E4%BA%8B/3.jpg" class="">
+
+<p>故事的推动就在战友间颇具喜剧色彩的生活片段和残酷无情的战争这两者的来回切换中徐徐展开，带给我的是一种转瞬即逝的黑色喜剧感。无论是保罗跟卡钦斯基一起去农民家偷来一只大白鹅烤了分给大家吃，并把鹅毛收藏起来准备做两个枕头，还是战争过后烤小猪，做保罗最爱的土豆饼，又或是三人乘夜色去河岸对面寻找欢愉，读者会意识到——这一切的一切都是这些“钢铁青年”在战场下维持最低限度的求生本能和渴望。等到战争结束过后，这些喜剧和欢乐转瞬便为了某种幻觉，与这个世界分别鲜明。</p>
+<p>像作者雷马克用沉痛笔调所写下的那样：</p>
+<blockquote>
+<p>“我们都已不再是青年了。我们不愿用突击的方式去攻取这个世界。我们却在逃跑。我们在自己的面前逃跑，在我们的生活面前逃跑。我们刚满十八岁，刚刚开始热爱世界，热爱生活，而我们却不得不把它打个粉碎。那第一颗炮弹，那第一次爆炸，在我们的心头炸开了。我们被切断了跟行动，跟渴求，跟进步的联系。我们再也不相信这些东西了。我们相信战争。”</p>
+</blockquote>
+<h2 id="书中摘录"><a href="#书中摘录" class="headerlink" title="书中摘录"></a>书中摘录</h2><ol>
+<li>这里躺着不久前还和我们一起烤马肉、蹲在弹坑里的伙伴克默里西——仍是他，却不再是他了。他的样子变得混淆、模糊，就像一张冲洗了两遍的底片，甚至他的声音也喑哑如灰了。</li>
+<li>当士兵们持久而有力地紧贴大地，当猛烈的炮火令他们极度恐惧，他们将脸和四肢深深地埋进大地时，大地是他们唯一的朋友，是兄弟，是母亲。</li>
+<li>这种致命的紧张，就像一把锯齿刀，沿着脊背来回剐蹭。两条腿僵硬了，手颤抖着，整个身体仅剩下一层薄皮，绷在竭力克制的疯狂上，绷在可能骤然爆发的无休无止的咆哮上。</li>
+<li>三天来，我们第一次看清了死神的脸。三天来，我们第一次与之抗争，满腔怒火。我们不再无力地躺在绞架上等待，而是为拯救自己去摧毁，去杀戮。不仅是拯救，还有复仇。</li>
+<li>所有发生的一切，只要战争尚未结束，都会像石头，沉入心底。战争结束，它们就会苏醒，开始阐释生与死。</li>
+<li>列车轰隆，转了一道弯，又一道弯。弯道上满是模糊、摇曳而神秘的白杨。它们一株连着一株，排成长长一列，构成幻影、光线和思念。</li>
+<li>我无法适应周围的一切。这是我母亲，那是我姐姐，墙上挂着我的蝴蝶，那边还有架桃花心木钢琴——我还没彻底回来。我和家之间还隔着一道屏障、一段距离。</li>
+<li>这个濒死的人有自己的时间。他有把无形的刀。他用这把刀刺死我：时间和我的思想。</li>
+<li>时间会洗刷这一切。他的姓名会像根钉子，钉进我的心里，永远拔不出来。它有着唤醒记忆的力量。它会常来，站在我面前。</li>
+<li>好比我们从前是各国的硬币，有人把它们熔化，压上同样的印模，要想区分，必须仔细检验其中的材质。我们是士兵，只有日后，才可能以特殊而羞耻的方式成为一个个人。</li>
+<li>一切都在流动和溶解。泥泞、潮湿而油腻的大地上，是一个漂着血色漩涡的黄色池塘。死者、伤员和尚且活着的人，都慢慢深陷进去。</li>
+</ol>
+]]></content>
+      <categories>
+        <category>book review</category>
+      </categories>
+      <tags>
+        <tag>人性</tag>
+        <tag>历史</tag>
+        <tag>战争</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>读书笔记《鳗鱼的旅行》</title>
+    <url>/2021/08/01/%E9%B3%97%E9%B1%BC%E7%9A%84%E6%97%85%E8%A1%8C/</url>
+    <content><![CDATA[<h2 id="三句话来概述"><a href="#三句话来概述" class="headerlink" title="三句话来概述"></a>三句话来概述</h2><ol>
+<li>作者在宏大的思考与别人的故事中讲述他跟鳗鱼的渊源，童年时跟父亲的钓鱼点滴，家族历史。</li>
+<li>书里讲述了鳗鱼在科学史中留下的谜团，并以此展开文学、艺术和宗教中的鳗鱼考察之旅；更有甚者，在回忆与父亲珍贵的捕鳗时光中，探讨生命、死亡以及其间的一切。</li>
+<li>作者所书写的历史长河中有这样一类人：当他们决定要寻找某件勾起他们好奇心的事情的答案时，会不断前进，永不放弃，直至最终找到。努力想要寻找某样事物起源的人，也是在寻找自己的起源。</li>
+</ol>
+<h2 id="作者"><a href="#作者" class="headerlink" title="作者"></a>作者</h2><p>[瑞典] 帕特里克·斯文松</p>
+<p>生于1972年，《南瑞典日报》艺术和文化记者，他与家人一起生活在南瑞典的马尔默。日渐远离工人家庭出身的他，依旧难忘儿时与父亲于溪畔捕捉鳗鱼的时光。于是他踏上探索鳗鱼和父子关系的旅程，写出了这部集自然书写、科学史、父子回忆录于一身的独特作品——《鳗鱼的旅行》。这本处女作一经出版即畅销全瑞典，被翻译成三十种语言，并一举拿下瑞典极负盛名的大奖——奥古斯特文学奖。</p>
+<hr>
+<h3 id="我是如何发现这本书的？"><a href="#我是如何发现这本书的？" class="headerlink" title="我是如何发现这本书的？"></a>我是如何发现这本书的？</h3><p>这本书作为作者帕特里克的处女座，在瑞典出版后一举成名，也在今年上半年的各大外文书榜中多次出现。最初是这本书的书名引来了我的注意，心想在这个鳗鱼已经普遍成为各类饭桌上佳肴的社会中，还有多少人了解它们背后的前世今生。带着这样的好奇，才打开了这本书走进作者描绘的鳗鱼世界。</p>
+<p>这里分享一篇在网络上读到的有关本书的读后感，里面十分详细地讲述了鳗鱼笨拙又浪漫的一生：从柳叶体-玻璃鳗-黄鳗-银鳗，一场苦行僧式的漫长旅行。</p>
+<p><a href="https://link.zhihu.com/?target=https://www.163.com/dy/article/G0DDQPFU0541HNJE.html">https://www.163.com/dy/article/G0DDQPFU0541HNJE.html</a></p>
+<h3 id="推荐给谁来阅读？"><a href="#推荐给谁来阅读？" class="headerlink" title="推荐给谁来阅读？"></a>推荐给谁来阅读？</h3><p>这是一本集合了自然书写、科普哲思、父子回忆录于一身的独特作品，也正是因为它如此特别的体裁，让读者可以充分地从不同的视角中品味鳗鱼的人生，以及鳗鱼视角下人类社会的千古演变，乃至对于大自然永恒的敬畏和好奇。</p>
+<img src="/2021/08/01/%E9%B3%97%E9%B1%BC%E7%9A%84%E6%97%85%E8%A1%8C/1.jpg" class="">
+
+<p>无论是想从科学的角度探究鳗鱼这一生物的生存习性，或是它们于人类面前逐步揭开的神秘感，还是在作者和他父亲的童年故事里藏匿于捕鳗生活中的温情和思考，读者都可以在《鳗鱼的旅行》中以一位旅行者的视角去感受和回味。</p>
+<h2 id="读后感"><a href="#读后感" class="headerlink" title="读后感"></a>读后感</h2><blockquote>
+<p>生活&#x2F;行为&#x2F;思维&#x2F;想法上的影响</p>
+</blockquote>
+<p>在书里作者谈论了非常多关于历史上种种对于鳗鱼生命起源的猜测，尤为突出了亚里士多德对其给予经验的解释——因为无法观测到鳗鱼繁殖的过程，所以认为它们是从海洋中的草木石缝中诞生。这通常被称为“生物自生说”，即生命可以由没有生命的物质演变而成。鳗鱼问题折射出的其实是“所有生命从何而来”的谜团。</p>
+<img src="/2021/08/01/%E9%B3%97%E9%B1%BC%E7%9A%84%E6%97%85%E8%A1%8C/2.jpg" class="">
+
+<p><strong>神秘背后的哲学</strong></p>
+<blockquote>
+<p>鳗鱼之所以如此与众不同，是因为直到今天，当我们试图了解它们的时候，在某种程度上我们仍然选择投身于信仰。因为即便今天我们以为自己知道了鳗鱼的生活和繁殖习性——从马尾藻海出发的漫长旅行、一次次蜕变、耐心的等待、为了繁殖而返回海洋的旅行，以及之后的死亡，即便这一切可能都是真实准确的，这其中仍有很多东西只是我们的猜测。</p>
+</blockquote>
+<p>鳗鱼也因此成了所谓形而上学的一种象征，鳗鱼的前世今生也因为被蒙上了一层浓烈的神秘私彩。“形而上学”可以追溯到亚里士多德（虽然这个概念是在他死后才被提出来的）。它是哲学的一个分支，研究的是客观自然之外的事物，是我们借助感官不能观测到并描述的事物。这类思想其实和海德格尔、萨特等等哲学家们的存在主义&#x2F;现象学思想有异曲同工之处。这一方面的哲学思考让我联想到了6月所读的《存在主义咖啡馆》，其中作者莎拉·贝克韦尔讲述了非常多18世纪下唯心主义的哲学体系，感兴趣的读者可以阅读我的上一篇读书笔记。<a href="https://zhuanlan.zhihu.com/p/384972426">https://zhuanlan.zhihu.com/p/384972426</a></p>
+<p><strong>捕鳗经验的传承</strong></p>
+<p>除了科学家的视角以外，作者在第九章里还向读者展示了鳗鱼渔民的生活。鳗鱼渔民拥有的特殊知识不是来自课堂或实验室。它们是经过许多个世纪传承下来的，就像一个没有被写下来的古老故事。人们是怎样缝制捕鳗网兜的，是怎样扒鳗鱼皮的，是怎样判断海上状况和天气的，是怎样理解鳗鱼在水下的活动的——这些具体而特殊的知识是在实践中被传承的，是一种跨越世代的集体经验。</p>
+<blockquote>
+<p>鳗鱼海岸总共被分为140个捕鱼区。它们大约有150米到300米宽，向海里延伸出几百米。只有拥有或者租赁了鳗鱼捕鱼权的人才有权在这里捕钓鳗鱼。人们在捕鱼区附近修建了鳗鱼棚屋，那是渔民过夜的地方。</p>
+</blockquote>
+<p>在谈及无钩法捕捉鳗鱼时，作者帕特里克引入了对于存在意义的思考，即将代代相传的知识经验与人类存在本身剥离开来：</p>
+<blockquote>
+<p>在另一个人甚至都无法理解的地方发现意义，但这个意义难道不应该是情境的一部分吗？这个情境难道不应该至少大于那个人本身吗？</p>
+</blockquote>
+<p>知识当然可以成为这种更大的情境。各种各样的知识，关于手工业的、关于工作的、关于不合理的古老钓鱼方法的。知识本身可以构成一种情境，如果人们成为把知识从一个人传递给另一个人、从一个时代传递到下一个时代的链条中的一环，那么在用处和收益之外，知识本身也有了意义。这是一切的目的所在。当我们谈论人类经验的时候，谈论的不是单个人的经验。我们谈论的是能被传递下去、能被复述和能被再次体验的人类共同的经验。</p>
+<p><strong>恐怖元素</strong></p>
+<p>除了鳗鱼光溜溜、黏糊糊的外表以外，作者还探讨了为什么在历史上鳗鱼会让人产生不悦，唤起心中恐怖的感觉。</p>
+<p>德国心理学家恩斯特·延奇（Ernst Jentsch）1906年写了一篇题为《关于恐怖的心理学》的论文。在那篇论文里，他把恐怖这个概念定义为，当我们遇到陌生的新事物时，心里产生的“那种不安全的晦暗感觉”。延奇解释说，那种令我们恐惧的东西，是一种让我们在智力上感到不安全的东西，是因为缺乏经验或者受感官所限而无法立刻认出或者进行解释的东西。</p>
+<p>弗洛伊德后来补充道，恐怖感的形成还需要一些别的元素——熟悉感。更确切地说，当某个我们自以为了解或懂得的东西展现出另外一副模样时，我们就会体验到那种特殊的不快感。熟悉的东西突然变得陌生了。一个物体、一个生物、一个人不再是我们最初以为的样子。</p>
+<p><strong>写在最后</strong></p>
+<p>读到最后，我觉得从作者的文字中找到了一份熟悉感。从遥远的历史长河和神秘的海洋世界中我感受到了人们一代又一代生活的气息，更从作者同他父亲一起的捕鳗生活中找寻到了童年的回忆。</p>
+<img src="/2021/08/01/%E9%B3%97%E9%B1%BC%E7%9A%84%E6%97%85%E8%A1%8C/3.jpg" class="">
+
+<p>用切尔·卡森的观点来说：要真正理解另一种动物，必须能够从它们身上看到一些自己的东西，这正是她在自然科学史上如此独一无二的原因。在《鳗鱼的旅行》中我们在鳗鱼身上由最初的神秘感进行产生了认同感，而这种认同也让人们有能力和勇气来对它们进行拟人化，也使得鳗鱼这一生物进一步走进了人类社会的进化当中，成为了人类历史长河中的一笔。</p>
+<p>文章末尾还想呼吁大家可以在闲暇之余翻看下《鳗鱼的旅行》这本书，尝试去理解鳗鱼的存在，也希望可以一起努力保护生活在地球上的每一种生物，共同来完成这一漫长的找寻存在意义的生命旅程。</p>
+<h2 id="书中摘录"><a href="#书中摘录" class="headerlink" title="书中摘录"></a>书中摘录</h2><ol>
+<li>这里的水是深蓝色的，很清，在某些地方有近7000米深，海面上覆盖着黏糊糊的褐藻，仿佛巨大的地毯。这些褐藻叫作马尾藻。</li>
+<li>这是一场苦行僧式的漫长旅行，引导这场旅行的是一个无法解释的目的，事关存在的意义。但一旦来到马尾藻海，鳗鱼就再次找到了自己的家。那些鱼卵在摇曳的厚厚的海藻下面受精。这样鳗鱼的目的便达成了，它们的故事结束了，它们便死去了。</li>
+<li>它的独特之处不在于其蜕变，不在于成年的银鳗会游进海里穿越整个大洋去繁殖后代。“让我们的鳗鱼有别于所有其他鱼类乃至所有其他动物的，是它们早在幼年阶段所做的如此浩荡的旅行。”</li>
+<li>这位往西进入开放海域、去往未知之地的约翰内斯·施密特，成了一个所有起源根脉都被切断的年轻人。</li>
+<li>工作不只是一份生计，工作是他不可分割的一部分。工作消耗了他，但也让他变得更坚韧。它塑造了他，并赋予了他颜色。</li>
+<li>不是所有的大门都向你敞开，而且时间比你以为的要少，但无论如何，你永远有尝试的自由。</li>
+<li>鳗鱼海岸的人们达成了共识，保持传统和经验的鲜活有其独特的价值。就这样，鳗鱼渐渐地在这里也变成了一种文化遗产。</li>
+<li>他们通过鳗鱼和捕钓活动，培养了一种局外人的眼光，一种对权力和多数人的怀疑态度。捕钓鳗鱼的人——不仅仅是在瑞典的鳗鱼海岸——是为自己而存在的。</li>
+<li>说到底，人需要成为某种具有延续性的东西的一部分，才能感觉自己属于某种在其存在之前就已开始、在其消失之后仍将继续存在的永恒。人需要成为某种更大事物的一部分。</li>
+<li>个人对其他形式的生命不仅拥有统治的权力，也承担着一种责任，让它们活着或死亡的责任。人们应该怎样履行这种责任、什么时候应该这样做或那样做，这些并不总是那么显而易见的。但它仍然是一种我们无法逃避的责任。这是一种我们必须抱着某种尊重去承担的责任。对动物的尊重，对生命本身的尊重，也包括对这种责任的尊重。</li>
+<li>某种程度上，亚里士多德的幽灵仍然笼罩着我们。所有的知识必须出自经验。事实必须如同它在我们感官中呈现的那样被忠实描述。只有我们真正看到的东西，我们才能确定地说是真实的。这是关于人类如何获取知识的一种观点。</li>
+</ol>
+]]></content>
+      <categories>
+        <category>book review</category>
+      </categories>
+      <tags>
+        <tag>历史</tag>
+        <tag>生物</tag>
+        <tag>科普</tag>
+        <tag>人物</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>From SIR to SEAIRD - a modeling approach to predict the dynamics of COVID-19</title>
+    <url>/2021/07/29/p6/</url>
+    <content><![CDATA[<p><strong>From SIR to SEAIRD: a novel data-driven modeling approach based on the Grey-box System Theory to predict the dynamics of COVID-19</strong></p>
+<p>Authors: Komi Midzodzi Pékpé, Djamel Zitouni, Gilles Gasso, Wajdi Dhifli, Benjamin C. Guinhouya</p>
+<p>Link: <a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2106.11918">https://arxiv.org/abs/2106.11918</a></p>
+<h2 id="Abstract"><a href="#Abstract" class="headerlink" title="Abstract"></a>Abstract</h2><blockquote>
+<p>Common compartmental modeling for COVID-19 is based on a priori knowledge and numerous assumptions. Additionally, they do not systematically incorporate asymptomatic cases. Our study aimed at providing a framework for data-driven approaches, by leveraging the strengths of the grey-box system theory or grey-box identification, known for its robustness in problem solving under partial, incomplete, or uncertain data.<br>The model was implemented and solved using an Ordinary Differential Equation solver and an optimization tool. A cross-validation technique was applied, and the coefficient of determination R2 was computed in order to evaluate the goodness-of-fit of the model. Key epidemiological parameters were finally estimated and we provided the rationale for the construction of SEAIRD model. </p>
+</blockquote>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a><strong>Introduction</strong></h2><p>A traditional modeling approach in epidemiology for infectious diseases is to use compartment modeling which relies on the SIR (Susceptible, Infected, and Recovered or Removed)-type models, coupled with ARIMA model, deep learning. But the model suffers a number of issues, including the priori assumptions, and the need of a thorough knowledge of the circulating virus, which was difficult at the moment of conducting this study, due to the novelty SARS-CoV-2. </p>
+<p>In order to compensate the dearth of data and uncertainties around SARS-CoV-2 mechanisms of action and that of its related disease, the COVID-19, authors postulate that the grey-box system identification theory (GBSIT) could make an asset to tackle these challenges. </p>
+<p>Mathematically, the COVID-19 dynamic model can be seen as a switching system with non-linear system models, where the switches are triggered by control measures set by authorities. The switching model coupled with grey-box approach provides flexibility in characterizing the dynamics of the epidemic across its different phases. One major advantage of such data-driven approach is its ability to operate under limited priori knowledge of the studied phenomenon. </p>
+<h2 id="Dataset"><a href="#Dataset" class="headerlink" title="Dataset"></a><strong>Dataset</strong></h2><p>The epidemiologic data were taken from an open source repository operated by the European Centre for Disease prevention and Control (ECDC). The database provides daily number of new cases and deaths for different countries.</p>
+<p>All used epidemiologic data were taken from an <a href="https://link.zhihu.com/?target=https://www.ecdc.europa.eu/en/covid-19">https://www.ecdc.europa.eu/en/covid-19</a> pandemic open source repository operated by the European Centre for Disease prevention and Control (ECDC).</p>
+<p>In order to preclude perturbations to the modeling approach due to changes in behaviors, as a consequence of policy measures taken by countries, only data on the dynamical stable phase of the epidemic is considered, i.e. a period within the setting of control measures.</p>
+<h2 id="Methodology"><a href="#Methodology" class="headerlink" title="Methodology"></a><strong>Methodology</strong></h2><p>The model in this paper has considered human transmission of SARS-CoV-2 strain, with the following assumptions (provided t is the time stamp): </p>
+<ul>
+<li>Infective persons can be classified in two categories; one of which is with symptoms, denoted by I(t), and the other is without any clinical presence of symptoms called asymptomatic or subclinical infective cases, denoted by A(t).</li>
+<li>When a change in the behavior of people occurs due to a public response to the outbreak, the contact rate (reflecting the level of risky behaviors) decreases with the increase in the cumulative numbers of removed persons;</li>
+<li>Homogeneous mixing population is assumed.</li>
+</ul>
+<p><img src="https://pic4.zhimg.com/80/v2-c37525d2245056b5b4b9337551d8f007_1440w.jpg"></p>
+<p>The proposed SEAIRD model is a compartment model that explicitly incorporates asymptomatic cases in the analysis of the epidemic evolution. The model consists of the following time-dependent variables: S(t): susceptible individuals; E(t): exposed (incubating) population; A(t): asymptomatic infective people; I(t): symptomatic infective individuals; R(t): removed persons (i.e. completely and&#x2F;or temporary recovered from COVID-19); D(t): Dead people. A flow chart of the model is given above.</p>
+<p>Relevant parameters are defined as follows:</p>
+<p><img src="https://pic3.zhimg.com/80/v2-c156189bf693f37655d59b6d74b065d2_1440w.jpg"></p>
+<p>The considered model is a non-linear dynamic model defined as:</p>
+<p><img src="https://pic2.zhimg.com/80/v2-871738994a95e9568d4b66f30338c8bd_1440w.jpg"></p>
+<p>Here, both cumulative infective cases and dead cases are discretized with a sampling period of one day to reduce the computation costs, yielding: <img src="https://www.zhihu.com/equation?tex=%5Cmathscr%7BI%7D(t)=%5Csum_%7Bt%7D%5E%7Bp=0%7D%7BI(p)%7D">.</p>
+<p>Let <img src="https://www.zhihu.com/equation?tex=y(t)=+%5Cbegin%7Bpmatrix%7D+++%5Cmathscr%7BI%7D(t)+%5C%5C+D(t)+%5Cend%7Bpmatrix%7D"> be the vector including the real cumulative number of infective cases I (t), and the cumulative number of dead cases D(t) at day t. Let <img src="https://www.zhihu.com/equation?tex=%5Chat%7By%7D(t)=+%5Cbegin%7Bpmatrix%7D+++%5Chat%7B%5Cmathscr%7BI%7D%7D(t)+%5C%5C+%5Chat%7BD%7D(t)+%5Cend%7Bpmatrix%7D"> be the predicted counterpart of y(t) by our model at the same day. To find the optimal parameters vector which fits our model to the collected data y(t) over a time window <img src="https://www.zhihu.com/equation?tex=%5BT_0,T_1%5D"> , authors have considered the following optimization problem over <img src="https://www.zhihu.com/equation?tex=%5Cvarphi">:</p>
+<p><img src="https://www.zhihu.com/equation?tex=%5Cmin_%7B%5Cvarphi%7D%7B%5Csum_%7Bt=T_0%7D%5E%7BT_1%7D%7B(w_t%5ET(y(t)-%5Chat%7By%7D(t,%5Cvarphi)))%5E2%7D%7D"> where <img src="https://www.zhihu.com/equation?tex=w_t"> is the weight vector that can be used to balance infected and death cases.</p>
+<p>The complete algorithm is shown as below:</p>
+<p><img src="https://pic4.zhimg.com/80/v2-ec5d8226cedb955f800a021621d0ed3b_1440w.jpg"></p>
+<h2 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h2><p>When applied to Brazil’s cases, SEAIRD produced an excellent agreement to the data, with an R2 ≥ 90%. The probability of COVID-19 transmission was generally high (≥ 95%). On the basis of a 20-day modeling data, the incidence rate of COVID-19 was as low as 3 infected cases per 100,000 exposed persons in Brazil and France. Within the same time frame, the fatality rate of COVID-19 was the highest in France (16.4%) followed by Brazil (6.9%), and the lowest in Russia (≤ 1%). SEAIRD represents an asset for modeling infectious diseases in their dynamical stable phase, especially for new viruses when pathophysiology knowledge is very limited.</p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>journal review</category>
+      </categories>
+      <tags>
+        <tag>Statistics</tag>
+        <tag>SIR</tag>
+        <tag>COVID-19</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Verification of probability forecasts for football outcomes</title>
+    <url>/2021/07/07/p5/</url>
+    <content><![CDATA[<p>*<strong>More on verification of probability forecasts for football outcomes: score decompositions, reliability, and discrimination analyses*</strong></p>
+<p>Authors: Jean-Louis Foulley</p>
+<p>Link: <a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2106.14345">https://arxiv.org/abs/2106.14345</a></p>
+<h2 id="Abstract"><a href="#Abstract" class="headerlink" title="Abstract"></a>Abstract</h2><blockquote>
+<p>Forecast of football outcomes in terms of Home Win, Draw and Away Win (HDA) relies largely on ex ante probability elicitation of these events and ex post verification of them via computation of probability scoring rules (Brier, Ranked Probability, Logarithmic, Zero-One scores). Usually, appraisal of the quality of forecasting procedures is restricted to reporting mean score values. The purpose of this article is to propose additional tools of verification, such as score decompositions into several components of special interest. Graphical and numerical diagnoses of reliability and discrimination and kindred statistical methods are presented using different techniques of binning (fixed thresholds, quantiles, logistic and iso regression). These procedures are illustrated on probability forecasts for the outcomes of the UEFA Champions League (C1) at the end of the group stage based on typical Poisson regression models with reasonably good results in terms of reliability as compared to those obtained from bookmaker odds and whatever the technique used. Links with research in machine learning and different areas of application (meteorology, medicine) are discussed.</p>
+</blockquote>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a><strong>Introduction</strong></h2><p>In the article, the author is considering outcome variables as HAD (Home Win, Away Win, Draw) categorical results, in terms of scorelines {Y(A), Y(B)} goals in match (A vs B) i.e., pairs of integers. Traditionally in football, one summarizes HDA forecast performance by a synthetic criterion such as the mean square error known as Brier’s score (1950). To review the deficiencies of issued forecasts, analytical attributes of Brier’s score can be brought out such as Reliability, Resolution, Discrimination, Refinement and etc. </p>
+<h2 id="Parameterization-Decomposition-of-the-Brier-score"><a href="#Parameterization-Decomposition-of-the-Brier-score" class="headerlink" title="Parameterization: Decomposition of the Brier score"></a><strong>Parameterization: Decomposition of the Brier score</strong></h2><p>Let X be the binary outcome of the event H with probability and P the random variable probabilistic forecast of X taking values p. The Half-Brier score defined as the loss function <img src="https://www.zhihu.com/equation?tex=S(P,X)=(P-X)%5E2"> . Using the conditioning rule, the Murphy (1973, Calibration-Refinement factorization) decomposition of its expectation can be written as:</p>
+<p><img src="https://www.zhihu.com/equation?tex=%5Cmathbb%7BE%7D%5BS(P,X)%5D=Var(X)-Var_P+%5B%5Cmathbb%7BE%7D_X(X%7CP)%5D+%5Cmathbb%7BE%7D_P%7B%5B%5Cmathbb%7BE%7D_X(X%7CP)-P%5D%5E2%7D"></p>
+<p>, where three terms are respectively representing Uncertainty (UNC), Resolution (RES) and Reliability (REL). </p>
+<ul>
+<li>UNC measures the variance of the outcome that is out of control of the forecaster,</li>
+<li>RES measures the variability between the conditional expectations of the observed outcomes given their forecasts (i.e. the ability of forecast to distinguish situations with distinctly different frequencies of occurrence),</li>
+<li>REL measures the average squared differences between the conditional expectation of the outcome and its forecast.</li>
+</ul>
+<p><img src="https://pic4.zhimg.com/80/v2-9a10c88320d5aefa7de907d052a8ea3b_1440w.jpg"></p>
+<p>A second factorization method (Likelihood-base) is also discussed which includes a Refinement (REF), Discrimination (DIS) term. </p>
+<h2 id="Methodology-amp-Analysis"><a href="#Methodology-amp-Analysis" class="headerlink" title="Methodology &amp; Analysis"></a><strong>Methodology &amp; Analysis</strong></h2><p>A logistic model of the probability of Homewin, Draw and Awaywin (HDA) was fitted on the logit of its probabilistic forecast under a Poisson regression model (POI). </p>
+<p><img src="https://pic1.zhimg.com/80/v2-64ac5d39d38cf7d18a08586ea09b5be4_1440w.jpg"></p>
+<p>Following Cox (1958), the model relating X to P is written via a logit linear predictor: <img src="https://www.zhihu.com/equation?tex=logit%5BPr(X_i=1)%5D=%5Calpha+%5Cbeta+%5Ctimes+logit(p_i)"> with i) ( <img src="https://www.zhihu.com/equation?tex=%5Calpha%3E0+%5Cmbox%7B+and+%7D+%5Cbeta=1"> ) for concave under-forecasting profiles; and ii) ( <img src="https://www.zhihu.com/equation?tex=%5Calpha%3C0+%5Cmbox%7B+and+%7D+%5Cbeta=1"> ) for convex over-forecasting profiles. </p>
+<p>From the Reliability Diagrams for Home Win Probability Forecasts, results were shown that the forecasts were reliable with 95% Consistency Bands. </p>
+<p><img src="https://pic1.zhimg.com/80/v2-5101660968fce9aefa0f3883704d1e40_1440w.jpg"></p>
+<p>The article has further discussed verifications on Likelihood-base and Yates’ decompositions of Brier’s score. Regarding its application to the UEFA Champions League, it turns out that forecasts of Away Wins is both well calibrated and refined with good discrimination properties. The same trend can be seen on Home Wins, but with a trade-off between that over-forecasted category and under-forecasted draws with little discrimination of draw forecasts.</p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>journal review</category>
+      </categories>
+      <tags>
+        <tag>Statistics</tag>
+        <tag>Brier Score</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Robust deep hedging</title>
+    <url>/2021/07/06/p4/</url>
+    <content><![CDATA[<p>*<strong>Robust deep hedging*</strong></p>
+<p>Authors: Eva Lütkebohmert, Thorsten Schmidt, Julian Sester</p>
+<p>Link: <a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2106.10024">https://arxiv.org/abs/2106.10024</a></p>
+<h2 id="Abstract"><a href="#Abstract" class="headerlink" title="Abstract"></a>Abstract</h2><blockquote>
+<p>We study pricing and hedging under parameter uncertainty for a class of Markov processes which we call generalized affine processes and which includes the Black Scholes model as well as the constant elasticity of variance (CEV) model as special cases. Based on a general dynamic programming principle, we are able to link the associated nonlinear expectation to a variationally form of the Kolmogorov equation which opens the door for fast numerical pricing in the robust framework. The main novelty of the paper is that we propose a deep hedging approach which efficiently solves the hedging problem under parameter uncertainty. We numerically evaluate this method on simulated and real data and show that the robust deep hedging outperforms existing hedging approaches, in particular in highly volatile periods.</p>
+</blockquote>
+<h2 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h2><p>In the beginning, the authors raised the classical estimation problem in predicting the evolution of a stock in the future, which is that parameters estimated carry confidence intervals which need to be taken into account for the prediction. In particular, changes in the underlying dynamics are “rather the rule than the exception and additional uncertainty and model risk come into play, widening the confidence interval”. </p>
+<h2 id="Methodology"><a href="#Methodology" class="headerlink" title="Methodology"></a>Methodology</h2><p>The deep learning approach for hedging under parameter uncertainty is based on recent developed class of affine processes under parameter uncertainty, which is simply referred as “nonlinear affine processes (NGA)”. </p>
+<p>In terms of a realistic data application, authors have chosen the COVID-19 period since stock markets experienced unexpectedly high volatility and variation in the price paths. In order to find reliable estimated for the parameter intervals specifying the uncertainty in the considered model class, a sliding-window MLE (maximum-likelihood estimation) approach was used. </p>
+<p><strong>Parameterization</strong></p>
+<p>A generalized affine diffusion is a continuous semimartingale X ([definition] Semimartingale: In probability theory, a real valued stochastic process X is called a semimartingale if it can be decomposed as the sum of a local martingale and an adapted finite-variation process. ) which is a unique strong solution of the stochastic differential equation (SDE):</p>
+<p><img src="https://www.zhihu.com/equation?tex=dX_t=(b_0+b_1X_t)dt++(a_0+a_1X_t)%5E%5Cgamma+dW_t"> , where <img src="https://www.zhihu.com/equation?tex=%5Cgamma=1/2"> gives the well-known special case of a (continuous) affine process.</p>
+<p>Another intuition here within parameter uncertainty is that: instead of assuming the parameter <img src="https://www.zhihu.com/equation?tex=%5Ctheta"> to be known exactly, the authors introduce an interval <img src="https://www.zhihu.com/equation?tex=%5B%5Cunderline%7B%5Ctheta%7D,+%5Cbar%7B%5Ctheta%7D%5D"> and consider each value in the interval equally possible. The description of the generalized affine process under parameter uncertainty is now intuitively given by all those probability laws describing a diffusion where the drift and the volatility always stay in the intervals <img src="https://www.zhihu.com/equation?tex=b(x)"> and <img src="https://www.zhihu.com/equation?tex=a(x)"> . </p>
+<p><strong>Robust pricing of derivatives</strong></p>
+<p>The study has considered an European claim with maturity <img src="https://www.zhihu.com/equation?tex=T"> and payoff <img src="https://www.zhihu.com/equation?tex=%5Cpsi(X_T)"> . The value function v is defined as:</p>
+<p><img src="https://www.zhihu.com/equation?tex=v(t,x):=%5Csup_%7BP%5Cin+A(t,+x,%5CTheta)%7D%5Cmathbb%7BE%7D%5EP%5B%5Cpsi(X_T)%5D"></p>
+<p>where A is referred as all absolutely continuous semimartingale laws. </p>
+<p>In the next stage of the study, the authors used nonlinear Kolmogorov equation as an efficient tool to compute the value function by solving nonlinear partial differential equations numerically (based on Theorem 2.2, page 5). In other words, the goal here is to find a numerical procedure which replaces the classical Monte-Carlo estimation in a robust setting. </p>
+<p>In particular, deep neutral networks were applied to find the optimal parameters within the given intervals (i.e. parameter uncertainty) in order to minimize the hedging error. The full procedure is summarized by the algorithm 1 below:</p>
+<p><img src="https://pic3.zhimg.com/80/v2-ddf41a684796a41ae21312cbe4dd79d6_1440w.jpg"></p>
+<p>If you are interested in further application of this robust hedging strategy in option products or real life data, more examples can be found in the paper:</p>
+<ul>
+<li>3.2.1 Hedging of at-the-money call options, page7-9</li>
+<li>3.2.2. Hedging of a butterfly option, page9-10</li>
+<li>3.2.3 Hedging of a path-dependent option, page10</li>
+<li>4 US stock market index S&amp;P 500 from 26 September 2008 until 09 April 2020 from Thomson Reuters Eikon (excluding the Covid-19 period for containing high volatility)</li>
+</ul>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>journal review</category>
+      </categories>
+      <tags>
+        <tag>Statistics</tag>
+        <tag>Finance</tag>
+        <tag>DNN</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Body Reform | 健身日志02</title>
+    <url>/2021/07/05/%E5%81%A5%E8%BA%AB%E6%97%A5%E5%BF%9702/</url>
+    <content><![CDATA[<blockquote>
+<p>Train like a Spartan.</p>
+</blockquote>
+<p>4月末之后就基本以居家健身为主，力量训练都是借用哑铃来完成。</p>
+<p>和4月的健身计划相比，6月我开始加大了有氧的训练量，总共完成了103km的跑量。在饮食上也适当放宽了碳水的摄入量，从而来维持同等强度的力量训练。</p>
+<img src="/2021/07/05/%E5%81%A5%E8%BA%AB%E6%97%A5%E5%BF%9702/3.png" class="" title="Keep跑步">
+
+<p>这次的日志记录了6月末为期10天的训练内容，平均下来每周会训练腹部、手臂、肩膀和背部肌群2次，腿部肌肉没有特别训练，主要通过有氧跑步时的变速跑和HIIT中的多种复合型跳跃动作来刺激肌群。</p>
+<img src="/2021/07/05/%E5%81%A5%E8%BA%AB%E6%97%A5%E5%BF%9702/1.png" class="">
+
+<img src="/2021/07/05/%E5%81%A5%E8%BA%AB%E6%97%A5%E5%BF%9702/2.png" class="">
+
+<p>整体来看跑步时的心肺得到了不小的提升，腿部的肌肉也没有刚开始跑步那样酸痛。运动前后的热身与拉伸也花了更长的时间去完成，充分地去调动和放松训练的肌群。</p>
+<p>希望7月可以继续维持现有的有氧量，适当提升下配速。在饮食上继续控制糖分的摄入，加强对于脂肪摄入的控制。</p>
+<hr>
+<p>运动带给我们的好处非常之多，无论背后的目标是减脂、增肌、身体塑性或是长久形成的生活习惯，都可以借由社交平台一起来探讨训练内外的各种心得和知识。之后的内容会继续从饮食、睡眠、训练、心态等等的角度来记录健身日常，喜欢的小伙伴欢迎点赞支持一下哟，一起自律打卡。</p>
+]]></content>
+      <categories>
+        <category>hobbies</category>
+      </categories>
+      <tags>
+        <tag>training</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>读书笔记《存在主义咖啡馆》</title>
+    <url>/2021/06/30/%E5%AD%98%E5%9C%A8%E4%B8%BB%E4%B9%89%E5%92%96%E5%95%A1%E9%A6%86/</url>
+    <content><![CDATA[<p>副标题：自由、存在和杏子鸡尾酒</p>
+<p>原作名：At the Existentialist Café: Freedom, Being, and Apricot Cocktails</p>
+<p>译者：沈敏一</p>
+<img src="/2021/06/30/%E5%AD%98%E5%9C%A8%E4%B8%BB%E4%B9%89%E5%92%96%E5%95%A1%E9%A6%86/1.jpg" class="">
+
+<h2 id="三句话来概述"><a href="#三句话来概述" class="headerlink" title="三句话来概述"></a>三句话来概述</h2><ol>
+<li>莎拉·贝克韦尔将历史、传记与哲学结合在一起，以史诗般恢弘的视角，激情地讲述了一个充满了斗争、爱情、反抗与背叛的存在主义故事，深入探讨了在今天这个纷争不断、技术驱动的世界里，当我们每个人再次面对有关绝对自由、全球责任与人类真实性的问题时，曾经也受过它们困扰的存在主义者能告诉我们什么。</li>
+<li>在书里哲学被塑造成了一种人生模式，通过人物传记的方式哲学家们的个人经验和他们的哲学思考形成了精神上的融合。</li>
+<li>别想着向外求索；返回你自身。真理栖居于灵魂之中。（圣奥古斯丁）</li>
+</ol>
+<h2 id="作者"><a href="#作者" class="headerlink" title="作者"></a>作者</h2><p>莎拉·贝克韦尔（Sarah Bakewell），1963年出生于英国的伯恩茅斯，后随父母在亚洲旅行多年，最终在澳大利亚悉尼定居、长大。返回英国后，她考入埃塞克斯大学，攻读哲学专业，毕业后在伦敦的一家图书馆做了十年图书管理员。2002年，贝克韦尔辞去工作，开始专职写作，除本书外，她的作品还包括How to Live（2010）、The English Dane（2005）、The Smart（2002）。她目前生活在伦敦，并在伦敦城市大学和开放大学教授创意写作课。</p>
+<img src="/2021/06/30/%E5%AD%98%E5%9C%A8%E4%B8%BB%E4%B9%89%E5%92%96%E5%95%A1%E9%A6%86/2.jpg" class="">
+
+<hr>
+<h3 id="我是如何发现这本书的？"><a href="#我是如何发现这本书的？" class="headerlink" title="我是如何发现这本书的？"></a>我是如何发现这本书的？</h3><p>在高中时期曾经一度迷恋于18世纪的黑格尔笔下的德国哲学革命，以及以他自己为首的黑格尔哲学。也是从黑格尔哲学中，我开始了解到当时德国哲学变革中的“精神现象学”——即自我意识的确定性，也创立一个完整的客观唯心主义哲学体系。这在书里第二章关于胡塞尔的唯心主义倾向也有所类似的展开。</p>
+<p>看到身边朋友推荐到这本书记，又被它独特的写作体裁（传记与哲学、历史相结合）所吸引，相信会给读者迸发出不一样的阅读体验。</p>
+<h3 id="推荐给谁来阅读？"><a href="#推荐给谁来阅读？" class="headerlink" title="推荐给谁来阅读？"></a>推荐给谁来阅读？</h3><p>正如上文所写，独特的传记形式让读者可以身临其境地抛开哲学术语，直接从哲学家们的个人经验和视角去感受哲学历史上的挑战和怀疑。</p>
+<img src="/2021/06/30/%E5%AD%98%E5%9C%A8%E4%B8%BB%E4%B9%89%E5%92%96%E5%95%A1%E9%A6%86/3.jpg" class="">
+
+<p>整本书的结构还是以历史上不同的哲学家进行划分，如果是某一位哲学家、或是哲学流派感兴趣可以直接选择性地挑选章节来阅读。</p>
+<p>这次我的读书笔记主要是基于本书的前三章来进行写作和整理。</p>
+<h2 id="读后感"><a href="#读后感" class="headerlink" title="读后感"></a>读后感</h2><blockquote>
+<p>生活&#x2F;行为&#x2F;思维&#x2F;想法上的影响</p>
+</blockquote>
+<p><strong>现象学</strong></p>
+<p>萨特、波伏娃的好友阿隆最先提出了现象学（phenomenology）这门学科，书中将它称之为“一种把哲学与日常生活经验重新联结起来研究哲学的方式”。</p>
+<p>现象学家中最重要的思想家埃德蒙德·胡塞尔，提出了一个振奋的口号：“回到事物本身（to the things themselves）! ”意思是说比起不断去尝试诠释一样事物，我们需要去观察把自己呈现在你面前的“这个东西”，且不管“这个东西”可能是什么，然后尽可能精确地把它描述出来。另一个现象学家马丁·海德格尔也表达过类似的观点：纵观历史，所有哲学家都把时间浪费在了次要问题上，而忘记去问那个最重要的问题——存在（being）的问题。</p>
+<p>萨特把这个原则变成了一句三个单词的口号——“存在先于本质”（Existence precedes essence）。在他看来，这个信条便足以概括存在主义。不过，它虽有简明扼要之优，可也有不易理解之劣。大概来讲，它的意思就是，发现自己被抛入世界中后，我会持续创造我自己的定义（或本性，或本质），但其他客体或生命形式却不会这样。</p>
+<p><strong>获得自由与真实</strong></p>
+<p>在萨特的一次演讲后的采访中他自己总结到：</p>
+<blockquote>
+<p>没有任何划定的道路来引导人去救赎自己；他必须不断创造自己的道路。但是，创造道路，他便拥有了自由与责任，失去了推脱的借口，而所有希望都存在于他本身之中。</p>
+</blockquote>
+<p>这一令人振奋的思想正好处于早已确立的社会和政治制度遭到战争破坏的1945年。萨特的听众听到他传递的信息时，正值欧洲满目疮痍，纳粹死亡集中营的消息开始暴露出来，广岛和长崎被原子弹摧毁之际。战争使人们意识到了自己和自己的那些人类同胞，完全有能力偏离文明的规范。</p>
+<blockquote>
+<p>哲学既不是纯粹的智识追求，也不是廉价的自我帮助技巧的集合，而是一种训练，由此来让自己不断成长，过上完满之人那种负责任的生活。</p>
+</blockquote>
+<p>我觉得在这里也很好地表达了作者对于哲学发展的理解，即在不断的挑战和怀疑中去萌生新的思想。而在哲学核心的背后，真正值得我们关注的，也许并非是哲学概念，而是人生。这一点在书里接下来第二章讨论的神学存在主义得到了进一步的解释。</p>
+<p><strong>神学存在主义</strong></p>
+<p>对于索伦·克尔凯而言，他并不同意郭尔勒内·笛卡儿（René Descartes）所阐明的“我思故我在”（Cogito ergo sum）的现代哲学理念。在他自己看来，人的存在是在先的：是我们做每一件事的起点，而不是一个逻辑推演的结果。我的存在是主动的：我经历存在、选择存在，这先于我可以做的任何关于我自己的阐述。</p>
+<p>克尔凯郭尔和尼采是现代存在主义的先驱。他们开创了一种反抗和不满的情绪，创造了存在的一种新定义，那就是选择、行动和自我肯定，并对人生的痛苦和困难做了研究。而且他们还引入了一个坚定的信念：哲学不只是一份职业，而是生命本身——个人的生命。</p>
+<p><strong>《第二性》</strong></p>
+<p>这本书是西蒙娜·德·波伏娃出版于1949年的一份开拓性的女性主义研究。高中时候拜读过其中的部分内容，当时并没有意识到我是在读一本存在主义著作——女性努力改变自己的人生，走的正是存在主义者的那条路，也就是追求自由，追求一种高度的个人主义和“真实性”。</p>
+<p>我想这也是存在主义给予人们的启发之一，去真诚而自由地活出自己的人生。</p>
+<p>《存在主义咖啡馆》这本书很棒的地方在于作者没有直接从哲学角度含沙射影地去解释什么是存在主义，或是其他哲学发展的理念。而是通过对人物经历&#x2F;性格的评价去彰显哲学思想的魅力和美丽。</p>
+<p>书里对萨特的评价：</p>
+<blockquote>
+<p>萨特借鉴了很多哲学传统，并从现代和个人的角度对其重新进行了改造，可以说，他是通往所有这些传统的一座桥梁。然而，他却一辈子都坚持认为，真正重要的不是过去，而是未来。一个人必须不断前行，创造还未发生的事：走到世界中，行动起来，然后去影响它。</p>
+</blockquote>
+<p><strong>再看现象学</strong></p>
+<p>胡塞尔式的“括除在外”或悬搁判断，让现象学家在探询一个人如何经历着他或她的世界时，暂时忽略“这是真的吗”这个问题。</p>
+<p>它让医学症状被视作病患体验到的状态成为可能，而不是仅仅被视作生理过程。病人可以描述一种弥散性或突然剧烈的疼痛，抑或一种沉重或迟滞的感觉，或是在翻江倒海的胃里有说不清的不自在感。被截肢的人常常在失去肢体的部位遭受“幻肢”之苦；现象学让分析这些感觉成为可能。</p>
+<p>摘用书里的一段文字来表达：</p>
+<blockquote>
+<p>现象学把我们生活的世界还给了我们。在那些我们通常不认为是哲学内容的事物上，它尤其有效：一杯饮料、一首忧郁的歌、一次兜风、一抹余晖、一种不安的情绪、一盒相片、一个无聊的时刻。它通过掉转我们自己通常如空气般被忽略的视角，恢复了个人世界的丰富性。</p>
+</blockquote>
+<p><strong>海德格尔</strong></p>
+<p>乔治·斯坦纳认为，海德格尔的意图不是要被理解，而是要通过“感觉到的陌生感”被体验。这是一种类似贝尔托·布莱希特（Bertholt Brecht）在他的戏剧中运用的“异化”（alienation）或疏离的效果，目的是防止人们变得入戏太深以及对熟悉事物的错觉信以为真。</p>
+<blockquote>
+<p>海德格尔的语言会令你一直紧张不安，是动态、突兀的语言，有时会显得荒诞，但总是很有力；在海德格尔作品的随便一页上，事物通常被展现为是在涌动或者推搡，被展现为被扔出去、点燃或打破。海德格尔承认，他这种写作方式造成一些“尴尬”，但他认为，那是为了颠覆哲学史并把我们带回到存在而付出的小代价。</p>
+</blockquote>
+<p>Sich-vorweg-schon-sein-in- （der-welt） als Sein-bei （innerweltlich begebnendem Seienden），即“先于自身-已存在于世界中-同时与世界里遇到的存在者一起的存在”。不同于胡塞尔向着内心世界的存在主义，在海德格尔看来，所有的在世存在也是一种“共在”（Being-with），或曰Mitsein。我们与他人共居于一个“共同世界”（with-world），或曰Mitwelt。</p>
+<p><strong>新的思考</strong></p>
+<p>从这本书里我们可以感受不同哲学家对于人类存在充满生命力的诠释，我也相信不同的读者在阅读的时候会与其中一些哲学思想、或是人生故事产生不同程度上的共鸣，这也是让我觉得阅读非常大的乐趣之一。</p>
+<p>感谢作者为我们和这些哲学家们建立起了共情，共同思考和体会我们的存在。</p>
+<h2 id="书中摘录"><a href="#书中摘录" class="headerlink" title="书中摘录"></a>书中摘录</h2><ol>
+<li>有人说，存在主义不太像哲学，倒是更像一种情绪。简言之，可以追溯到每一个曾对任何事感到过不满、叛逆和格格不入的人。</li>
+<li>他（萨特）以一种现象学创立者未曾想见的但却更让人兴奋和个人化的方式，把现象学应用到人们的生活之中，创建了一种兼具国际影响和巴黎风味的新哲学：现代存在主义。</li>
+<li>自由，在萨特看来，位于人类所有经验的中心，正是这一点，才把人类与其他事物区分开来。……我总是先我自己一步，边前行，边构筑自身。</li>
+<li>他的脸从来就不丑，因为他的脸被他头脑的睿智、“火山爆发般的诚实”和“新开垦土地般的慷慨”点亮了。（萨特）</li>
+<li>你经历了什么，那这个什么就是个哲学话题。</li>
+<li>哲学既不是纯粹的智识追求，也不是廉价的自我帮助技巧的集合，而是一种训练，由此来让自己不断成长，过上完满之人那种负责任的生活。</li>
+<li>这种不断的选择带来了一种深深的忧虑，很像是从悬崖往下看时的眩晕。它不是对坠崖的恐惧，而是对你不确定自己不会把自己扔下去的恐惧。</li>
+<li>每一个伟大的哲学家，实际上都是在书写“一种不自觉和无意识的回忆录”，而不是在进行客观的知识研究。研究我们自己的道德谱系学，不能帮助我们摆脱或超越自身，但它能让我们更清晰地看到我们的幻觉，并过上一种更有活力、更坚定的生活。</li>
+<li>他在海边散步，把鹅卵石扔进像粥一样的灰色大海中。他走到一个公园里，盯着一棵栗树暴露在外的粗糙多节的根，感觉它看上去就像煮沸的皮革，威胁着要用它那晦涩难懂的存在让他不知所措。</li>
+<li>胡塞尔在概括每一个点时，“右手的手指来回在平摊的左手手掌上缓慢画圈”——仿佛正在手掌上把他的观念翻来翻去，从不同的角度去看待它。</li>
+<li>因为意识没有“内在”。它只是它自身的外表，正是这种绝对的逃离，这种对成为物质的拒绝，使它成为一种意识。</li>
+</ol>
+]]></content>
+      <categories>
+        <category>book review</category>
+      </categories>
+      <tags>
+        <tag>社会学</tag>
+        <tag>哲学</tag>
+        <tag>人性</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Credit Scoring via Logistic Regression</title>
+    <url>/2021/06/23/p3/</url>
+    <content><![CDATA[<p><em><strong>Credit Scoring via Logistic Regression</strong></em></p>
+<p>Author: Ali Al-Arad</p>
+<p>Link: <a href="https://link.zhihu.com/?target=http://utstat.toronto.edu/~ali/papers/creditworthinessProject.pdf">http://utstat.toronto.edu/~ali&#x2F;papers&#x2F;creditworthinessProject.pdf</a></p>
+<h4 id="Abstract"><a href="#Abstract" class="headerlink" title="Abstract"></a>Abstract</h4><blockquote>
+<p>The goal of credit scoring models is to predict the creditworthiness of a customer and determine whether they will be able to meet a given financial obligation or default on it. Such models allow a financial institution to minimize the risk of loss by setting decision rules regarding which customers receive loan and credit card approvals. Logistic regression can be used to predict default events and model the influence of different variables on a consumer’s creditworthiness. In this paper we use a logistic regression model to predict the creditworthiness of bank customers using predictors related to their personal status and financial history. Model adequacy and robustness checks are performed to ensure that the model is being properly fitted and interpreted.</p>
+</blockquote>
+<h4 id="Dataset"><a href="#Dataset" class="headerlink" title="Dataset"></a>Dataset</h4><p>The data set used is the German Credit dataset obtained from the UCI machine-learning data archive and includes 20 covariates (7 numerical, 13 categorical) and 1000 observations. Each observation represents an individual customer with the response indicating their actual classification (1 &#x3D; “Good” or 0 &#x3D; “Bad”). </p>
+<p>For the purpose of this paper, 5 major predictors have been selected to build on the logistic model. The predictors cover financial, living and social indicators. </p>
+<p><img src="https://pic3.zhimg.com/80/v2-c3989f3d6ce654878902a3a1f6605c06_1440w.jpg"></p>
+<h4 id="Introduction-amp-Modelling"><a href="#Introduction-amp-Modelling" class="headerlink" title="Introduction &amp; Modelling"></a>Introduction &amp; Modelling</h4><p>In this paper, a binary logistic model is fitted to the data, using the logit link function. In other words, the classification of the <img src="https://www.zhihu.com/equation?tex=i_%7Bth%7D"> customer as having good or bad creditability is modeled using a Bernoulli random variable:</p>
+<p><img src="https://www.zhihu.com/equation?tex=Y_i=%5Cleft%5C%7B+%5Cbegin%7Baligned%7D+1+&+,+&+%5Cmbox%7Bif+the+customer+is+creditworthy%7D+%5C%5C+0+&+,+&+%5Cmbox%7Botherwise%7D+%5Cend%7Baligned%7D+%5Cright."></p>
+<p>with conditional probabilities <img src="https://www.zhihu.com/equation?tex=P(Y_i=1%7Cx_i)=%5Cpi_i"> and <img src="https://www.zhihu.com/equation?tex=P(Y_i=0%7Cx_i)=1-%5Cpi_i">. </p>
+<p>The conditional expectation is the given by: <img src="https://www.zhihu.com/equation?tex=E(Y_i%7Cx_i)=P(Y_i=1%7Cx_i)%5Ctimes+1+P(Y_i=0%7Cx_i)%5Ctimes+0=%5Cpi_i"> . </p>
+<p>The link function is essentially transferring the predicted probability into a more interpretable indicator which in this case is odds ratio: </p>
+<p>logit <img src="https://www.zhihu.com/equation?tex=%5Cpi_i=%5Clog(%5Cfrac%7B%5Cpi_i%7D%7B1-%5Cpi_i%7D)=x_i%5E%7B%27%7D%5Cbeta=%5Ceta_i"></p>
+<p>The estimation is performed by iterative weighted least squares (IWLS). </p>
+<h4 id="Model-Adequacy"><a href="#Model-Adequacy" class="headerlink" title="Model Adequacy"></a>Model Adequacy</h4><p>In terms of model validation, the author first tested on the significance of the deviance reduction, which suggest weak evidence against the model&#x2F;link given large p-value. Since the Pearson chi-square statistic or the deviance likelihood ratio test are not informative, Hosmer Lemeshow Test was performed to further compare the test statistic of observations in g categories to a <img src="https://www.zhihu.com/equation?tex=%5Cchi%5E2_%7Bg-2%7D"> distribution. Similar result was given.</p>
+<h4 id="Outlier-detection"><a href="#Outlier-detection" class="headerlink" title="Outlier detection"></a>Outlier detection</h4><p>In this paper, Cook’s Distance was used to plot the observations and identified three outliers in the data set. Comparing original model with a second model by removing those three cases to study their impact on the estimation and conclusions, the author has found that removal of those cases does not lead to noticeable changes in estimated parameters. </p>
+<h4 id="Robustness-Checks"><a href="#Robustness-Checks" class="headerlink" title="Robustness Checks"></a>Robustness Checks</h4><p>An alternative model is fit using aggregated data, to see if the conclusions of these models agree with those of the original model. By grouping the covariate data prior to aggregation, a smaller range of covariate patterns (i.e. collinearity) would be achieved. In particular, the categories of 4 factor variables have been more general, including history, duration, marital status and purpose. Based on Likelihood ratio test, the results agree with those of the original model. The exceptions are that when gender and status are considered separately, they are not significant variables, and purpose is also insignificant at 95% significance level. </p>
+<p><img src="https://pic4.zhimg.com/80/v2-0330cb83f1e1dd922a9435e1d9f06ab7_1440w.jpg"></p>
+<h4 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h4><p>The main findings of statistical analysis are as follows:</p>
+<ul>
+<li>Odds of a consumer’s creditworthiness increase with an increase in the size of their checking account.</li>
+<li>Odds of a consumer’s creditworthiness is 1.636 times greater when he is a single male than who being divorced&#x2F;married females. </li>
+<li>Odds of a consumer’s creditworthiness with a purpose of car is likely to be the greatest.</li>
+<li>Increased duration decreases the odds of creditworthiness.</li>
+<li>Consumers with “critical” credit history show large increases in expected odds of creditworthiness. In other words, the result suggests that consumers with worse credit history are less likely to default. It is very important that author has given out two possible explanations:</li>
+</ul>
+<ol>
+<li>The bank may be more stringent when it comes to loaning a consumer with bad credit history, whereas consumers with good credit history do not face the same kind of scrutiny and may end up being issued a loan they eventually cannot repay.</li>
+<li>An alternative explanation is that there may be a data issue in which the categories were incorrectly labeled. It would be best to be cautious with the interpretation of this result.</li>
+</ol>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>journal review</category>
+      </categories>
+      <tags>
+        <tag>Statistics</tag>
+        <tag>Finance</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>PlanGAN, Model-based Planning With Sparse Rewards and Multiple Goals</title>
+    <url>/2021/06/22/p2/</url>
+    <content><![CDATA[<p><em><strong>PlanGAN: Model-based Planning With Sparse Rewards and Multiple Goals</strong></em></p>
+<p>Authors: Henry Charlesworth, Giovanni Montana</p>
+<p>Link: <a href="https://link.zhihu.com/?target=https://arxiv.org/abs/2006.00900">https://arxiv.org/abs/2006.00900</a></p>
+<h4 id="Abstract"><a href="#Abstract" class="headerlink" title="Abstract"></a>Abstract</h4><blockquote>
+<p>Learning with sparse rewards remains a significant challenge in reinforcement learning (RL), especially when the aim is to train a policy capable of achieving multiple different goals. To date, the most successful approaches for dealing with multi-goal, sparse reward environments have been model-free RL algorithms. In this work we propose PlanGAN, a model-based algorithm specifically designed for solving multi-goal tasks in environments with sparse rewards. Our method builds on the fact that any trajectory of experience collected by an agent contains useful information about how to achieve the goals observed during that trajectory. We use this to train an ensemble of conditional generative models (GANs) to generate plausible trajectories that lead the agent from its current state towards a specified goal. We then combine these imagined trajectories into a novel planning algorithm in order to achieve the desired goal as efficiently as possible. The performance of PlanGAN has been tested on a number of robotic navigation&#x2F;manipulation tasks in comparison with a range of model-free reinforcement learning baselines, including Hindsight Experience Replay. Our studies indicate that PlanGAN can achieve comparable performance whilst being around 4-8 times more sample efficient.</p>
+</blockquote>
+<h4 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h4><p>In this paper the authors present PlanGAN, a model-based algorithm that can naturally be applied to sparse reward environments with multiple goals. The core of this method builds upon the same principle that underlies HER — namely that any goal observed during a given trajectory can be used as an example of how to achieve that goal from states that occurred earlier on in that same trajectory. </p>
+<p>However, unlike HER, the algorithm does not directly learn a goal-conditioned policy&#x2F;value function but rather train an ensemble of Generative Adversarial Networks (GANs) which learn to generate plausible future trajectories conditioned on achieving a particular goal. Then these imagined trajectories are combined into a novel planning algorithm that can reach those goals in an efficient manner.</p>
+<h4 id="Methodology"><a href="#Methodology" class="headerlink" title="Methodology"></a>Methodology</h4><p>The aim of the first major component of the methodology is to train a generative model that can take in the current state <img src="https://www.zhihu.com/equation?tex=s_t"> along with a desired goal <img src="https://www.zhihu.com/equation?tex=g"> and produce an imagined action at and next state <img src="https://www.zhihu.com/equation?tex=s_%7Bt+1%7D"> that moves the agent towards achieving <img src="https://www.zhihu.com/equation?tex=g"> .</p>
+<p>Intuitionally, the authors want to use the model to take a state-action pair <img src="https://www.zhihu.com/equation?tex=(s_t,+a_t)"> and predict the difference between the next state and current state, <img src="https://www.zhihu.com/equation?tex=s_%7Bt+1%7D-s_t"> . The predictive models in the paper are used to provide an L2 regularisation (Ridge) term in the generator loss that encourages the generated actions and next states to be consistent with the predictions of the one-step models. </p>
+<p><img src="https://pic3.zhimg.com/80/v2-e428832189cfaff49e0b58d32a048efe_1440w.jpg"></p>
+<p>The basic structure of the planner is to make use of a model to generate a number of imaginary future trajectories, score them, use these scores to choose the next action, and repeat this whole procedure at the next step. The score captures how effective those trajectories are in terms of moving towards the final goal <img src="https://www.zhihu.com/equation?tex=g"> . A good score here should reflect the fact that we want the next action to be moving us towards <img src="https://www.zhihu.com/equation?tex=g"> as quickly as possible whilst also ensuring that the goal can be retained at later time steps.</p>
+<p>Once these trajectories have been generated, the researchers give each of them a score based on the <em>fraction of time they spend achieving the goal</em>. This means that trajectories that reach the goal quickly are scored highly, but only if they are able to remain there. Accordingly, trajectories that do not reach the goal within T steps are given a score of zero. They can then score each of the initial actions <img src="https://www.zhihu.com/equation?tex=(a%5Eq_t)%5EQ_%7Bq=1%7D"> based on the average score of all the imagined trajectories that started with that action. These scores are normalised and denoted as <img src="https://www.zhihu.com/equation?tex=n_i"> . The final action returned by the planner is either the action with the maximum score or an exponentially weighted average of the initially proposed actions, <img src="https://www.zhihu.com/equation?tex=a_t=%5Cfrac%7B%5Csum_%7Bi=1%7D%5E%7BR%7D%7Be%5E%7B%5Calpha+n_i%7D%5Calpha_i%7D%7D%7B%5Csum_%7Bj=1%7D%5E%7BQ%7D%7Be%5E%7B%5Calpha+n_i%7D%7D%7D"> , where <img src="https://www.zhihu.com/equation?tex=%5Calpha%3E0"> is a hyperparameter. </p>
+<p><img src="https://pic1.zhimg.com/80/v2-f6288903a114299b9de194b129be7598_1440w.jpg"></p>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>journal review</category>
+      </categories>
+      <tags>
+        <tag>Machine Learning</tag>
+        <tag>Reinforcement Learning</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hindsight Experience Replay</title>
+    <url>/2021/06/21/p1/</url>
+    <content><![CDATA[<p><em><strong>Hindsight Experience Replay</strong></em></p>
+<p>Authors: Marcin Andrychowicz∗ , Filip Wolski, Alex Ray, Jonas Schneider, Rachel Fong, Peter Welinder, Bob McGrew, Josh Tobin, Pieter Abbeel† , Wojciech Zaremba†</p>
+<p>Link: <a href="https://link.zhihu.com/?target=https://arxiv.org/abs/1707.01495">https://arxiv.org/abs/1707.01495</a></p>
+<h4 id="Abstract"><a href="#Abstract" class="headerlink" title="Abstract"></a>Abstract</h4><blockquote>
+<p>Dealing with sparse rewards is one of the biggest challenges in Reinforcement Learning (RL). We present a novel technique called Hindsight Experience Replay which allows sample-efficient learning from rewards which are sparse and binary and therefore avoid the need for complicated reward engineering. It can be combined with an arbitrary off-policy RL algorithm and may be seen as a form of implicit curriculum. We demonstrate our approach on the task of manipulating objects with a robotic arm. In particular, we run experiments on three different tasks: pushing, sliding, and pick-and-place, in each case using only binary rewards indicating whether or not the task is completed. Our ablation studies show that Hindsight Experience Replay is a crucial ingredient which makes training possible in these challenging environments. We show that our policies trained on a physics simulation can be deployed on a physical robot and successfully complete the task. The video presenting our experiments is available at <a href="https://link.zhihu.com/?target=https://goo.gl/SMrQnI">https://goo.gl/SMrQnI</a>.</p>
+</blockquote>
+<h4 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h4><p>HER (Hindsight Experience Replay) is introduced to allow the algorithm to learn almost as much from achieving an undesired outcome as from the desired one, as humans do. Unlike the current generation of model-free RL algorithms, HER makes the learning possible even if the reward signal is unshaped (i.e. sparse and binary). </p>
+<p>In many cased of reinforcement learning, we often need to augment the reward using domain knowledge, in what is known as Reward Engineering or Reward Shaping. The problem here is that it is not always practically workable to discover the proper shaping for the reward functions. In other words, the domain knowledge required for strengthening learning is not always available. </p>
+<h4 id="Example-amp-Methodology"><a href="#Example-amp-Methodology" class="headerlink" title="Example &amp; Methodology"></a>Example &amp; Methodology</h4><p>In this paper, the authors have given out a motivating example, which asks us to consider a bit-flipping environment (page3) with state space <img src="https://www.zhihu.com/equation?tex=S=(0,1)%5En"> , action space <img src="https://www.zhihu.com/equation?tex=A=%7B0,1,...,n-1%7D">for some integer n in which executing the i-th action flips the i-th bit of the state. The policy gets a reward of -1 as long as it is not in the target state, i.e. <img src="https://www.zhihu.com/equation?tex=r_g(s,a)=-%5Bs%5Cne+g%5D"> . </p>
+<p>As mentioned in the example, a standard solution to this problem would be to use a shaped reward function which is more informative and guides the agent towards the goal, e.g. <img src="https://www.zhihu.com/equation?tex=r_g(s,a)=-%7C%7Cs-g%7C%7C%5E2"> . But this approach may be difficult to apply to more complicated problems (i.e. hard to capture the full information using shaped reward function like above). </p>
+<p>The second approach that has been raised is HER, which the reasoning is explained below:</p>
+<blockquote>
+<p>The pivotal idea behind our approach is to re-examine this trajectory with a different goal — while this trajectory may not help us learn how to achieve the state <img src="https://www.zhihu.com/equation?tex=g"> , it definitely tells us something about how to achieve the state <img src="https://www.zhihu.com/equation?tex=s_T">.</p>
+</blockquote>
+<p><strong>Off-Policy Learning</strong></p>
+<p>But how do human deal with such problem using HER? Sometimes when we fail to perform some tasks, we recognize that what we have done could be useful in another context, or for another task. It is the intuition that the authors of the paper used to develop their method. </p>
+<p>In HER, the authors suggest the following strategy: suppose our agent performs an episode of trying to reach goal state G from initial state S, but fails to do so and ends up in some state S’ at the end of the episode. We cache the trajectory into our replay buffer where <img src="https://www.zhihu.com/equation?tex=r_k">is the reward received at step k of the episode, and<img src="https://www.zhihu.com/equation?tex=a_k">is the action taken at step k of the episode.</p>
+<p>The idea in HER is to <strong>imagine that our goal has actually been S’ all along</strong>, and that in this alternative reality our agent has reached the goal successfully and got the positive reward for doing so.</p>
+<p>In addition to caching the real trajectory, we also cache the trajectory with imagined goal S’. This trajectory is motivated by the human ability to learn useful things from failed attempts. By introducing the imagined trajectories to our replay buffer, we ensure that<strong>no matter how bad our policy is, it will always have some positive rewards to learn from</strong>.</p>
+<p>The magic of function approximation by neural networks will ensure that our policy could also reach states similar to those it has seen before; this is the generalization property that is the hallmark of successful deep learning. At first, the agent will be able to reach states in a relatively small area around the initial state, but gradually it expands this reachable area of the state space until finally it learns to reach those goal states we are actually interested in.</p>
+<p><img src="https://pic1.zhimg.com/80/v2-ff722eecbf0f8f8ef16586d10451d288_1440w.jpg" alt="Pseudo Code of HER"></p>
+<blockquote>
+<p>HER may be seen as a form of implicit curriculum as the goals used for replay naturally shift from ones which are simple to achieve even by a random agent to more difficult ones. However, in contrast to explicit curriculum, HER does not require having any control over the distribution of initial environment states.</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>academics</category>
+        <category>journal review</category>
+      </categories>
+      <tags>
+        <tag>Machine Learning</tag>
+        <tag>Reinforcement Learning</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Body Reform | 健身日志01</title>
+    <url>/2021/05/11/%E5%81%A5%E8%BA%AB%E6%97%A5%E5%BF%9701/</url>
+    <content><![CDATA[<blockquote>
+<p>Train like a Spartan.</p>
+</blockquote>
+<p>第一次尝试以文字的形式来记录下自己日常健身时的训练内容，希望可以不断改善自己的训练计划，找到最适合自己的生活方式。</p>
+<p>运动期间我每日的热量大概在1800千卡左右，宏观营养摄入量如下：</p>
+<ul>
+<li>脂肪 37-45g</li>
+<li>蛋白质 104-127g</li>
+<li>碳水 229-280g</li>
+</ul>
+<p>这次的日志记录了4月末为期10天（4&#x2F;21-4&#x2F;30）的训练内容，平均下来一周每个肌群会训练1到2次。由于我自己的体脂含量偏高，所以力量训练结束后会进行30min左右的有氧，来加速身体内脂肪的燃烧。</p>
+<img src="/2021/05/11/%E5%81%A5%E8%BA%AB%E6%97%A5%E5%BF%9701/1.jpg" class="">
+
+<img src="/2021/05/11/%E5%81%A5%E8%BA%AB%E6%97%A5%E5%BF%9701/2.jpg" class="">
+
+<img src="/2021/05/11/%E5%81%A5%E8%BA%AB%E6%97%A5%E5%BF%9701/3.jpg" class="">
+
+<p>运动带给我们的好处非常之多，无论背后的目标是减脂、增肌、身体塑性或是长久形成的生活习惯，都可以借由社交平台一起来探讨训练内外的各种心得和知识。之后的内容会继续从饮食、睡眠、训练、心态等等的角度来记录健身日常，喜欢的小伙伴欢迎点赞支持一下哟，一起自律打卡。</p>
+]]></content>
+      <categories>
+        <category>hobbies</category>
+      </categories>
+      <tags>
+        <tag>training</tag>
+      </tags>
+  </entry>
+</search>

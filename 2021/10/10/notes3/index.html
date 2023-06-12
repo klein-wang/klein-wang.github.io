@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.3/css/all.min.css" integrity="sha256-2H3fkXt6FEmrReK448mDVGKb3WW2ZZw35gI7vqHOE4Y=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" integrity="sha256-Vzbj7sDDS/woiFS3uNKo8eIuni59rjyNGtXfstRzStA=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Pisces","version":"8.5.0","exturl":false,"sidebar":{"position":"right","width":240,"display":"always","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+<meta name="description" content="The&#96;sklearn.metrics&#96;module implements functions assessing prediction error for specific purposes. 文章将介绍sklearn里基于不同模型类别的检验指标以及python中的代码实现">
+<meta property="og:type" content="article">
+<meta property="og:title" content="sklearn.metrics - 回归&#x2F;分类模型的评估方法">
+<meta property="og:url" content="http://example.com/2021/10/10/notes3/index.html">
+<meta property="og:site_name" content="My Channel">
+<meta property="og:description" content="The&#96;sklearn.metrics&#96;module implements functions assessing prediction error for specific purposes. 文章将介绍sklearn里基于不同模型类别的检验指标以及python中的代码实现">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://pic4.zhimg.com/80/v2-c91b24a72e2d91d03f15f84acae75e87_1440w.jpg">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex==TP/(TP/FP)">
+<meta property="og:image" content="https://pic2.zhimg.com/80/v2-a3b6092e30d2eab7d2372007aec15105_1440w.jpg">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex=R%5E2">
+<meta property="og:image" content="https://www.zhihu.com/equation?tex==%5Cfrac%7BSSR%7D%7BTSS%7D+=1+-+%5Cfrac%7BRSS%7D%7BTSS%7D">
+<meta property="og:image" content="https://pic1.zhimg.com/80/v2-c4297f1c1090fb30ed8e5fb8089ee630_1440w.jpg">
+<meta property="article:published_time" content="2021-10-10T15:40:20.000Z">
+<meta property="article:modified_time" content="2021-10-10T15:42:08.000Z">
+<meta property="article:author" content="Klein">
+<meta property="article:tag" content="Machine Learning">
+<meta property="article:tag" content="Model Evaluation">
+<meta property="article:tag" content="Statistics">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic4.zhimg.com/80/v2-c91b24a72e2d91d03f15f84acae75e87_1440w.jpg">
+
+
+<link rel="canonical" href="http://example.com/2021/10/10/notes3/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2021/10/10/notes3/","path":"2021/10/10/notes3/","title":"sklearn.metrics - 回归/分类模型的评估方法"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>sklearn.metrics - 回归/分类模型的评估方法 | My Channel</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">My Channel</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">1.1</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">33</span></a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories<span class="badge">5</span></a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">19</span></a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#sklearn-metrics"><span class="nav-number">1.</span> <span class="nav-text">sklearn.metrics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E7%B1%BB%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.</span> <span class="nav-text">分类模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9E%E5%BD%92%E6%A8%A1%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">回归模型</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Klein"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">Klein</p>
+  <div class="site-description" itemprop="description">Personal website for idea spreading.</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">19</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">33</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/klein-wang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;klein-wang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:kleinwang1@gmail.com" title="G-Mail → mailto:kleinwang1@gmail.com" rel="noopener" target="_blank"><i class="fab fa-google fa-fw"></i>G-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:2370347112@qq.com" title="QQ-Mail → mailto:2370347112@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>QQ-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.facebook.com/profile.php?id=100011302230273" title="FB Page → https:&#x2F;&#x2F;www.facebook.com&#x2F;profile.php?id&#x3D;100011302230273" rel="noopener" target="_blank"><i class="fab fa-facebook fa-fw"></i>FB Page</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.youtube.com/channel/UCcT2r9gIYAcPBw6q0qY685Q/playlists" title="YouTube → https:&#x2F;&#x2F;www.youtube.com&#x2F;channel&#x2F;UCcT2r9gIYAcPBw6q0qY685Q&#x2F;playlists" rel="noopener" target="_blank"><i class="fab fa-youtube fa-fw"></i>YouTube</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.instagram.com/kleinwang" title="Instagram → https:&#x2F;&#x2F;www.instagram.com&#x2F;kleinwang" rel="noopener" target="_blank"><i class="fab fa-instagram fa-fw"></i>Instagram</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/yuanchen-klein-wang-87004a112/" title="LinkedIn → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;yuanchen-klein-wang-87004a112&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>LinkedIn</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.zhihu.com/people/wang-yuan-chen-24/columns" title="Zhihu → https:&#x2F;&#x2F;www.zhihu.com&#x2F;people&#x2F;wang-yuan-chen-24&#x2F;columns" rel="noopener" target="_blank"><i class="fab fa-zhihu fa-fw"></i>Zhihu</a>
+      </span>
+  </div>
+  <div class="cc-license site-overview-item animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdn.jsdelivr.net/npm/@creativecommons/vocabulary@2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+          </div>
+        </div>
+        <div class="back-to-top animated" role="button" aria-label="Back to top">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/10/10/notes3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Klein">
+      <meta itemprop="description" content="Personal website for idea spreading.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="My Channel">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          sklearn.metrics - 回归/分类模型的评估方法
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2021-10-10 23:40:20 / Modified: 23:42:08" itemprop="dateCreated datePublished" datetime="2021-10-10T23:40:20+08:00">2021-10-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/academics/" itemprop="url" rel="index"><span itemprop="name">academics</span></a>
+        </span>
+          , 
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/academics/notes/" itemprop="url" rel="index"><span itemprop="name">notes</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+            <div class="post-description">The`sklearn.metrics`module implements functions assessing prediction error for specific purposes. 文章将介绍sklearn里基于不同模型类别的检验指标以及python中的代码实现</div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h2 id="sklearn-metrics"><a href="#sklearn-metrics" class="headerlink" title="sklearn.metrics"></a>sklearn.metrics</h2><blockquote>
+<p>The<code>sklearn.metrics</code>module implements functions assessing prediction error for specific purposes. These metrics are detailed in sections on <a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23classification-metrics">Classification metrics</a>, <a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23multilabel-ranking-metrics">Multilabel ranking metrics</a>, <a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23regression-metrics">Regression metrics</a> and <a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23clustering-metrics">Clustering metrics</a>.</p>
+</blockquote>
+<h2 id="分类模型"><a href="#分类模型" class="headerlink" title="分类模型"></a>分类模型</h2><p><strong>accuracy_score</strong></p>
+<p>分类准确率分数是指所有分类正确的百分比。分类准确率这一衡量分类器的标准比较容易理解，但是它不能告诉你响应值的潜在分布，并且它也不能告诉你分类器犯错的类型。所以在使用的时候，一般需要搭配matplotlib等数据可视化工具来观察预测的分类情况，与实际的结果做更加直观的比较。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np  </span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> accuracy_score  </span><br><span class="line">y_pred = [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>, <span class="number">3</span>]  </span><br><span class="line">y_true = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]  </span><br><span class="line">accuracy_score(y_true, y_pred)  <span class="comment"># 默认normalization = True</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.5</span></span><br><span class="line">accuracy_score(y_true, y_pred, normalize=<span class="literal">False</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">2</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>recall_score</strong></p>
+<p>召回率 &#x3D;提取出的正确信息条数 &#x2F;样本中的信息条数。通俗地说，就是所有准确的条目有多少被检索出来了。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">recall_score(y_true, y_pred, labels=<span class="literal">None</span>, pos_label=<span class="number">1</span>,average=<span class="string">&#x27;binary&#x27;</span>, sample_weight=<span class="literal">None</span>)</span><br><span class="line">参数average : string, [<span class="literal">None</span>, ‘micro’, ‘macro’(default), ‘samples’, ‘weighted’]</span><br></pre></td></tr></table></figure>
+
+<p>将一个二分类matrics拓展到多分类或多标签问题时，我们可以将数据看成多个二分类问题的集合，每个类都是一个二分类。接着，我们可以通过跨多个分类计算每个二分类metrics得分的均值，这在一些情况下很有用。你可以使用average参数来指定。 </p>
+<ul>
+<li>macro：计算二分类metrics的均值，为每个类给出相同权重的分值。</li>
+<li>weighted:对于不均衡数量的类来说，计算二分类metrics的平均，通过在每个类的score上进行加权实现。 </li>
+<li>micro：给出了每个样本类以及它对整个metrics的贡献的pair（sample-weight），而非对整个类的metrics求和，它会每个类的metrics上的权重及因子进行求和，来计算整个份额。</li>
+<li>samples：应用在multilabel问题上。它不会计算每个类，相反，它会在评估数据中，通过计算真实类和预测类的差异的metrics，来求平均（sample_weight-weighted） </li>
+<li>average：average&#x3D;None将返回一个数组，它包含了每个类的得分.</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> recall_score  </span><br><span class="line">y_true = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>]  </span><br><span class="line">y_pred = [<span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>]  </span><br><span class="line">recall_score(y_true, y_pred, average=<span class="string">&#x27;macro&#x27;</span>)   </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.33</span>...  </span><br><span class="line">recall_score(y_true, y_pred, average=<span class="string">&#x27;micro&#x27;</span>)   </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.33</span>...  </span><br><span class="line">recall_score(y_true, y_pred, average=<span class="string">&#x27;weighted&#x27;</span>)   </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.33</span>...  </span><br><span class="line">recall_score(y_true, y_pred, average=<span class="literal">None</span>)  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>array([<span class="number">1.</span>,  <span class="number">0.</span>, <span class="number">0.</span>])  </span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>roc_curve</strong></p>
+<p>ROC曲线指受试者工作特征曲线&#x2F;接收器操作特性(receiver operating characteristic，ROC)曲线,是反映灵敏性和特效性连续变量的综合指标,是用构图法揭示敏感性和特异性的相互关系，它通过将连续变量设定出多个不同的临界值，从而计算出一系列敏感性和特异性。ROC曲线是根据一系列不同的二分类方式（分界值或决定阈），<strong>以真正例率（也就是灵敏度）（True Positive Rate,TPR）为纵坐标，假正例率（1-特效性）（False Positive Rate,FPR）为横坐标</strong>绘制的曲线。</p>
+<p>通过ROC我们可以观察到模型正确识别的正例的比例与模型错误地把负例数据识别成正例的比例之间的权衡。TPR的增加以FPR的增加为代价。ROC曲线下的面积是模型准确率的度量，<strong>AUC</strong>（Area under roc curve）。</p>
+<p>TPR &#x3D; TP &#x2F;（TP + FN） （正样本预测结果数 &#x2F; 正样本实际数）</p>
+<p>FPR &#x3D; FP &#x2F;（FP + TN） （被预测为正的负样本结果数 &#x2F;负样本实际数）</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np  </span><br><span class="line"><span class="keyword">from</span> sklearn <span class="keyword">import</span> metrics  </span><br><span class="line">y = np.array([<span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>])  </span><br><span class="line">scores = np.array([<span class="number">0.1</span>, <span class="number">0.4</span>, <span class="number">0.35</span>, <span class="number">0.8</span>])  </span><br><span class="line">fpr, tpr, thresholds = metrics.roc_curve(y, scores, pos_label=<span class="number">2</span>)  </span><br><span class="line">fpr  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>array([<span class="number">0.</span> ,  <span class="number">0.5</span>,  <span class="number">0.5</span>, <span class="number">1.</span> ])  </span><br><span class="line">tpr  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>array([<span class="number">0.5</span>,  <span class="number">0.5</span>,  <span class="number">1.</span> , <span class="number">1.</span> ])  </span><br><span class="line">thresholds  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>array([<span class="number">0.8</span> ,  <span class="number">0.4</span> ,  <span class="number">0.35</span>, <span class="number">0.1</span> ])  </span><br><span class="line"></span><br><span class="line"><span class="comment"># check auc score</span></span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> auc   </span><br><span class="line">metrics.auc(fpr, tpr)   </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.75</span>   </span><br><span class="line"></span><br><span class="line"><span class="comment"># 也可以直接根据预测值+真实值来计算出auc值，略过roc的计算过程</span></span><br><span class="line">‘’‘</span><br><span class="line">sklearn.metrics.roc_auc_score(y_true, y_score, average=<span class="string">&#x27;macro&#x27;</span>, sample_weight=<span class="literal">None</span>)</span><br><span class="line">average : string, [<span class="literal">None</span>, ‘micro’, ‘macro’(default), ‘samples’, ‘weighted’]</span><br><span class="line">’‘’</span><br><span class="line"><span class="comment"># 真实值（必须是二值）、预测值（可以是0/1,也可以是proba值）</span></span><br><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> roc_auc_score  </span><br><span class="line">y_true = np.array([<span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>])  </span><br><span class="line">y_scores = np.array([<span class="number">0.1</span>, <span class="number">0.4</span>, <span class="number">0.35</span>, <span class="number">0.8</span>])  </span><br><span class="line">roc_auc_score(y_true, y_scores)  </span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="number">0.75</span>  </span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>confusion metric</strong></p>
+<p>混淆矩阵（confusion matrix），又称为可能性表格或是错误矩阵。它是一种特定的矩阵用来呈现算法性能的可视化效果。其每一列代表预测值，每一行代表的是实际的类别。例如：</p>
+<p><img src="https://pic4.zhimg.com/80/v2-c91b24a72e2d91d03f15f84acae75e87_1440w.jpg"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">confusion_matric(y_true, y_pred, labels=<span class="literal">None</span>, pos_label=<span class="number">1</span>,</span><br><span class="line">                 average=<span class="string">&#x27;binary&#x27;</span>, sample_weight=<span class="literal">None</span>)</span><br></pre></td></tr></table></figure>
+
+<p><strong>precision_score</strong></p>
+<p>计算精确度——precision <img src="https://www.zhihu.com/equation?tex==TP/(TP/FP)"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">precision_score(y_true, y_pred, labels=<span class="literal">None</span>, pos_label=<span class="number">1</span>,</span><br><span class="line">                 average=<span class="string">&#x27;binary&#x27;</span>)</span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://pic2.zhimg.com/80/v2-a3b6092e30d2eab7d2372007aec15105_1440w.jpg"></p>
+<p>这张图比较详细地把roc、confusion matrix、precision score以及统计学假设检验的Type I、Type II error放在一起进行归纳，形成完整的知识体系。</p>
+<h2 id="回归模型"><a href="#回归模型" class="headerlink" title="回归模型"></a>回归模型</h2><p><strong>explained_variance_score</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">explained_variance_score(y_true, y_pred, sample_weight=<span class="literal">None</span>, </span><br><span class="line">                         multioutput=‘uniform_average’)</span><br><span class="line"><span class="comment"># 回归方差(反应自变量与因变量之间的相关程度)</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>MAE</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mean_absolute_error(y_true,y_pred,sample_weight=<span class="literal">None</span>,</span><br><span class="line">                    multioutput=‘uniform_average’)</span><br><span class="line"><span class="comment"># 平均绝对误差</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>MSE</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mean_squared_error(y_true, y_pred, sample_weight=<span class="literal">None</span>, </span><br><span class="line">                   multioutput=‘uniform_average’)</span><br><span class="line"><span class="comment"># 均方差</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>MAE (median)</strong></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">median_absolute_error(y_true, y_pred) </span><br><span class="line"><span class="comment"># 中值绝对误差</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>R Square</strong></p>
+<p><img src="https://www.zhihu.com/equation?tex=R%5E2"> 作为衡量模型拟合度的一个量，是一个比例形式，计算方式 <img src="https://www.zhihu.com/equation?tex==%5Cfrac%7BSSR%7D%7BTSS%7D+=1+-+%5Cfrac%7BRSS%7D%7BTSS%7D"> ，即被解释方差&#x2F;总方差。</p>
+<ul>
+<li>TSS是执行回归分析前，响应变量固有的方差。</li>
+<li>RSS残差平方和就是，回归模型不能解释的方差。</li>
+<li>SSR回归模型可以解释的方差。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">r2_score(y_true, y_pred,sample_weight=<span class="literal">None</span>,multioutput=‘uniform_average’) </span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>Note：这里只是列举了一些日常常用的对于Model Selection的评估方式，文末处附上scikit-learn官网上对于metrics的完整公式介绍：</p>
+<p><img src="https://pic1.zhimg.com/80/v2-c4297f1c1090fb30ed8e5fb8089ee630_1440w.jpg"></p>
+<p>感兴趣的朋友可以到<a href="https://link.zhihu.com/?target=https://scikit-learn.org/stable/modules/model_evaluation.html%23model-evaluation">官网页面</a>进行浏览。</p>
+<hr>
+<p>文章首发于知乎专栏：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/408078074">https://zhuanlan.zhihu.com/p/408078074</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>Buy me a coffee</div>
+  <button onclick="document.querySelector('.post-reward').classList.toggle('active');">
+    Donate
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.png" alt="Klein WeChat Pay">
+        <span>WeChat Pay</span>
+      </div>
+      <div>
+        <img src="/images/alipay.png" alt="Klein Alipay">
+        <span>Alipay</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>Welcome to my other publishing channels</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+        <a target="_blank" class="social-link" href="https://www.zhihu.com/people/wang-yuan-chen-24">
+          <span class="icon">
+            <i class="fab fa-zhihu"></i>
+          </span>
+
+          <span class="label">Zhihu</span>
+        </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Machine-Learning/" rel="tag"># Machine Learning</a>
+              <a href="/tags/Model-Evaluation/" rel="tag"># Model Evaluation</a>
+              <a href="/tags/Statistics/" rel="tag"># Statistics</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/10/10/notes2/" rel="prev" title="Jieba结巴分词 - 关键词提取">
+                  <i class="fa fa-chevron-left"></i> Jieba结巴分词 - 关键词提取
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/10/10/notes4/" rel="next" title="SnowNLP - 文本情感分析">
+                  SnowNLP - 文本情感分析 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 2021 – 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Klein</span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+<script>
+    var now = new Date(); 
+    function createtime() { 
+        var grt= new Date("06/25/2021 12:00:00");//此处修改你的建站时间或者网站上线时间 
+        now.setTime(now.getTime()+250); 
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days); 
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours); 
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum); 
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;} 
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum); 
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;} 
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 "; 
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒"; 
+    } 
+setInterval("createtime()",250);
+</script>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js" integrity="sha256-yt2kYMy0w8AbtF89WXb2P1rfjcP/HTHLT7097U8Y5b8=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+<script src="/js/third-party/search/local-search.js"></script>
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"position":"right","width":150,"height":300},"mobile":{"show":true}});</script></body>
+</html>
